@@ -14,7 +14,11 @@ try:
 except ImportError:
     raise SystemExit('Pygame is missing. Double-click PLAY_WINDOWS.bat or run: python -m pip install -r requirements.txt')
 
-from model import Store, Session, TIERS, DIRS, ROSTERS
+from model import Store, TIERS, DIRS, ROSTERS
+from expedition import Session
+from adventure_ui import ExpeditionUI
+from controls import ControlUI
+from biome_ui import BiomeUI
 from art import Sprites, seed, berry, heart, leaf
 from audio import Audio
 from world import World, TILE
@@ -31,16 +35,18 @@ GOLD = (247, 203, 118)
 RED = (239, 143, 133)
 
 
-class App:
+class App(ControlUI, BiomeUI, ExpeditionUI):
     def __init__(self, save_dir=None):
         pygame.mixer.pre_init(22050, -16, 1, 512)
         pygame.init()
         info = pygame.display.Info()
         self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
         self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
-        pygame.display.set_caption('Applin Escape | Sunseed Edition')
+        pygame.display.set_caption('Applin Escape | Living Biomes 3.1')
         self.canvas = pygame.Surface((W, H))
         self.store = Store(save_dir)
+        self.init_adventure()
+        self.init_controls()
         self.audio = Audio(self.store.get('music', True), self.store.get('effects', True))
         self.comfort = self.store.get('stationary_v22', False)
         self.motion = False if self.comfort else self.store.get('decoration_v22', False)
@@ -108,20 +114,35 @@ class App:
 
     def start(self, tier=0, mode='practice'):
         try:
-            self.game = Session(self.store, tier, mode)
+            if self.resume_data:
+                data, self.resume_data = self.resume_data, None
+                self.game = Session.restore(self.store, data['game'])
+                self.campaign_results = data.get('campaign', [])
+            else:
+                if self.game and self.game.state == 'playing': self.game.abandon()
+                self.game = Session(self.store, tier, mode, skill=self.skill, ability=self.ability,
+                                    coop=self.coop and mode != 'tutorial', code=self.pending_code)
+                self.pending_code = None
+            self.navigation.clear()
+            self.render_revision = self.game.board_revision
+            self.visual_partner = list(map(float, self.game.partner['pos']))
+            self.partner_timer = .2
+            self.autosave_timer = 0
+            self.celebrate = 0
+            self.save_expedition()
             self.shrine_open = 0.0
             self.overview = True
             self.prepare_board()
-            self.audio.set_biome(tier)
+            self.audio.set_biome(self.game.tier)
             self.visual_player = list(map(float, self.game.player))
             self.visual_enemies = [list(map(float, e.pos)) for e in self.game.enemies]
             self.particles = []
             self.move_timer = .2
-            self.screen = 'play'
+            self.screen = 'play' if self.game.state == 'playing' else 'result'
             self.focus = -1
             self.error = ''
             self.cached_summary = self.store.summary()
-        except (OSError, RuntimeError, sqlite3.Error) as exc:
+        except (OSError, RuntimeError, sqlite3.Error, ValueError, KeyError, TypeError) as exc:
             self.error = 'Could not start/save the maze: ' + str(exc)
             self.screen = 'error'
 
@@ -175,6 +196,8 @@ class App:
     def action(self, action):
         self.audio.play('click')
         self.focus = -1
+        if self.controls_action(action): return
+        if self.extra_action(action): return
         if action.startswith('tier:'):
             self.selected = int(action.split(':')[1])
         elif action == 'campaign':
@@ -195,6 +218,7 @@ class App:
                 self.overview = not self.overview
             self.camera()
         elif action == 'pause':
+            self.save_expedition()
             self.screen = 'paused'
         elif action == 'resume':
             self.screen = 'play'
@@ -212,8 +236,11 @@ class App:
             self.audio.set_biome(None)
             self.cached_summary = self.store.summary()
         elif action == 'next':
+            self.skill, self.ability, self.coop = self.game.skill, self.game.ability, self.game.coop
             self.start(self.game.tier+1, 'campaign')
         elif action == 'retry':
+            self.skill, self.ability, self.coop = self.game.skill, self.game.ability, self.game.coop
+            if self.game.mode == 'challenge': self.pending_code = self.game.code
             self.start(self.game.tier, self.game.mode)
         elif action == 'music':
             self.audio.music = not self.audio.music
@@ -253,19 +280,21 @@ class App:
             self.running = False
 
     def events(self):
-        key_dirs = {pygame.K_UP: (0, -1), pygame.K_w: (0, -1), pygame.K_RIGHT: (1, 0), pygame.K_d: (1, 0),
-                    pygame.K_DOWN: (0, 1), pygame.K_s: (0, 1), pygame.K_LEFT: (-1, 0), pygame.K_a: (-1, 0)}
         for event in pygame.event.get():
+            if self.control_event(event): continue
             if event.type == pygame.QUIT:
                 self.running = False
             elif event.type == pygame.WINDOWFOCUSLOST and self.screen == 'play':
-                self.screen = 'paused'
+                self.action('pause')
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for rect, action in self.buttons:
                     if rect.collidepoint(self.mouse()):
                         self.action(action)
                         break
             elif event.type == pygame.KEYDOWN:
+                if self.screen == 'challenge':
+                    self.challenge_key(event)
+                    continue
                 if event.key == pygame.K_F11:
                     self.action('fullscreen')
                 elif event.key == pygame.K_m:
@@ -275,39 +304,37 @@ class App:
                 elif event.key == pygame.K_RETURN:
                     if self.screen != 'play' and 0 <= self.focus < len(self.buttons):
                         self.action(self.buttons[self.focus][1])
-                    elif self.screen == 'menu':
-                        self.action('campaign')
-                    elif self.screen == 'paused':
-                        self.action('resume')
-                    elif self.screen == 'result':
-                        self.action(self.result_primary())
+                    elif self.screen == 'menu': self.action('campaign')
+                    elif self.screen == 'paused': self.action('resume')
+                    elif self.screen == 'result': self.action(self.result_primary())
                 elif event.key == pygame.K_ESCAPE:
-                    if self.screen == 'play':
-                        self.screen = 'paused'
-                    elif self.screen == 'paused':
-                        self.action('resume')
-                    elif self.screen in ('help', 'settings', 'records'):
+                    if self.screen == 'play': self.action('pause')
+                    elif self.screen == 'paused': self.action('resume')
+                    elif self.screen in ('help','settings','records','adventure','journal','controls'):
                         self.action('back')
                 elif self.screen == 'menu' and pygame.K_1 <= event.key <= pygame.K_5:
                     self.selected = event.key-pygame.K_1
                 elif self.screen == 'play':
-                    if event.key in key_dirs:
-                        self.held_direction = key_dirs[event.key]
-                        if self.move_timer <= 0:
-                            self.game.move(self.held_direction)
-                            self.move_timer = Session.PLAYER_DELAY
-                            self.consume_events()
-                    elif event.key == pygame.K_SPACE:
-                        self.action('escape')
-                    elif event.key == pygame.K_p:
-                        self.screen = 'paused'
-                    elif event.key == pygame.K_v:
-                        self.action('overview')
-                    elif event.key == pygame.K_t:
-                        self.action('trail')
+                    command=self.controls.key_command(event.key,self.game.coop)
+                    if command:
+                        player,index=command
+                        if index<4:
+                            timer=self.partner_timer if player else self.move_timer
+                            if not player: self.held_direction=DIRS[index]
+                            if timer<=0:
+                                (self.game.move_partner if player else self.game.move)(DIRS[index])
+                                if player: self.partner_timer=Session.PLAYER_DELAY
+                                else: self.move_timer=Session.PLAYER_DELAY
+                        elif index==4:
+                            (self.game.escape_partner if player else self.game.escape)()
+                        else:
+                            self.game.interact(partner=bool(player))
+                        self.consume_events()
+                    elif event.key == pygame.K_p: self.action('pause')
+                    elif event.key == pygame.K_v: self.action('overview')
+                    elif event.key == pygame.K_t: self.action('trail')
                     elif event.key == pygame.K_F1:
-                        self.screen = 'paused'
-                        self.action('help')
+                        self.action('pause'); self.action('help')
 
     def consume_events(self):
         g = self.game
@@ -315,13 +342,15 @@ class App:
             self.audio.play(kind)
             if kind in ('seed', 'berry', 'escape', 'land', 'hit', 'cleared'):
                 color = GOLD if kind == 'seed' else RED if kind == 'hit' else GREEN
+                if kind == 'seed': self.celebrate = .7
                 x, y = self.center(cell)
-                for _ in range(20 if self.characters and not self.comfort else 0):
+                for _ in range(20 if self.particle_fx and self.characters and not self.comfort else 0):
                     angle = self.fx_rng.uniform(0, math.tau)
                     speed = self.fx_rng.uniform(20, 105)
                     self.particles.append([x, y, math.cos(angle)*speed, math.sin(angle)*speed, .7, color])
             if kind in ('land', 'respawn'):
                 self.visual_player = list(map(float, g.player))
+                self.visual_partner = list(map(float, g.partner['pos']))
             if kind == 'respawn':
                 self.visual_enemies = [list(map(float, e.pos)) for e in g.enemies]
             if kind in ('cleared', 'caught'):
@@ -330,20 +359,18 @@ class App:
                 self.cached_summary = self.store.summary()
                 if kind == 'cleared' and g.mode == 'campaign':
                     self.campaign_results.append((g.elapsed, g.steps, g.score))
+                    self.save_expedition()
         g.events.clear()
 
     def update(self, dt):
         self.t += dt
         if self.screen != 'play':
+            self.audio.set_danger(False)
             return
         g = self.game
         self.move_timer -= dt
         keys = pygame.key.get_pressed()
-        held = []
-        for pair, direction in [((pygame.K_UP, pygame.K_w), DIRS[0]), ((pygame.K_RIGHT, pygame.K_d), DIRS[1]),
-                                ((pygame.K_DOWN, pygame.K_s), DIRS[2]), ((pygame.K_LEFT, pygame.K_a), DIRS[3])]:
-            if any(keys[k] for k in pair):
-                held.append(direction)
+        held = self.controls.held(keys,0,g.coop)
         if held and self.move_timer <= 0:
             direction = self.held_direction if self.held_direction in held else held[0]
             self.held_direction = direction
@@ -352,10 +379,17 @@ class App:
             if not moved and g.direction in held and g.direction != direction:
                 g.move(g.direction)
             self.move_timer = Session.PLAYER_DELAY
+        self.partner_timer -= dt
+        if g.coop and self.partner_timer <= 0:
+            held_partner=self.controls.held(keys,1,True)
+            if held_partner:
+                g.move_partner(held_partner[0])
+                self.partner_timer=Session.PLAYER_DELAY
         g.update(dt)
+        self.extra_update(dt)
         self.consume_events()
         self.shrine_open = min(1.0,self.shrine_open+dt/1.1) if not g.seeds else 0.0
-        factor = 1 if self.comfort else min(1,dt*24)
+        factor = 1 if self.comfort or not self.characters else min(1,dt*24)
         for i in range(2):
             self.visual_player[i] += (g.player[i]-self.visual_player[i])*factor
         for enemy, visual in zip(g.enemies, self.visual_enemies):
@@ -383,7 +417,12 @@ class App:
         self.text('Read the maze. Outsmart the chase. Find sanctuary.', (49, 285), 19, MUTED)
         self.button('Begin five-stage expedition', (48, 340, 361, 55), 'campaign', True)
         self.button('Play selected tier', (425, 340, 233, 55), 'practice')
-        self.text('ENTER  expedition     /     1-5  select tier', (49, 411), 14, MUTED)
+        self.button('Adventure setup', (48,410,211,42), 'adventure', small=True)
+        self.button('Tutorial', (272,410,155,42), 'tutorial', small=True)
+        if self.store.get('active_expedition',None):
+            self.button('Continue saved', (440,410,218,42), 'continue', True, small=True)
+        else:
+            self.button('Collection journal', (440,410,218,42), 'journal', small=True)
         # Original illustrated hero vignette.
         self.panel((732, 91, 500, 351), (29, 46, 42), radius=26)
         for i in range(6):
@@ -395,7 +434,7 @@ class App:
         for i in range(8):
             leaf(self.canvas, (769+i*59, 122+(i*47)%260), 5, (123, 158, 92), (self.t*.3 if self.motion else 0)+i)
         self.text('THE BIOME EXPEDITION', (980, 413), 12, GREEN, bold=True, center=True)
-        self.text('CHOOSE YOUR CHALLENGE', (48, 470), 13, MUTED, bold=True)
+        self.text(f'CHOOSE YOUR CHALLENGE / {self.skill.upper()} / {self.ability.upper()} / '+('DUO' if self.coop else 'SOLO'), (48,470),13,MUTED,bold=True)
         for i, tier in enumerate(TIERS):
             x = 48+i*240
             rect = pygame.Rect(x, 503, 224, 211)
@@ -405,11 +444,11 @@ class App:
             self.text(f'0{i+1}', (x+17, 518), 25, tier.color, serif=True)
             self.text(tier.name, (x+17, 557), 17, TEXT, bold=True)
             self.text(tier.biome, (x+17, 588), 12, MUTED)
-            self.text(f'{tier.enemies} birds  /  {tier.escapes} escapes', (x+17, 615), 14, MUTED)
+            self.text(f'{tier.enemies} birds  /  {tier.escapes+(2 if self.skill=="Relaxed" else 0)} escapes', (x+17, 615), 14, MUTED)
             self.button('Selected' if i == self.selected else 'Select tier', (x+16, 652, 192, 43), f'tier:{i}', small=True)
         count, wins, best = self.cached_summary
         self.text(f'{count} unique maps explored     /     {wins} stages cleared     /     best {best:,}', (48, 754), 16, MUTED)
-        self.text('Five landscapes / Five original soundtracks / Offline single-player', (48, 796), 12, MUTED)
+        self.text('v3.1 Living Biomes / Keyboard and gamepad / Local co-op', (48, 796), 12, MUTED)
         self.button('Quit', (1120, 763, 112,  40), 'quit', small=True)
 
     def draw_game(self):
@@ -417,9 +456,9 @@ class App:
         tier = g.config
         self.text('APPLIN ESCAPE', (30, 23), 13, GREEN, bold=True)
         self.text(tier.biome, (28, 47), 33, TEXT, serif=True)
-        self.text(f'{g.mode.upper()}   /   STAGE {g.tier+1:02d}   /   {tier.name}', (31, 101), 13, tier.color, bold=True)
+        self.text(f'{g.mode.upper()} / STAGE {g.tier+1:02d} / {g.skill.upper()} / '+('DUO' if g.coop else 'SOLO'), (31, 101), 13, tier.color, bold=True)
         self.button('Pause  [P]', (1090,  30, 159, 43), 'pause', small=True)
-        self.text('WASD / arrows to move', (827, 42), 15, MUTED)
+        self.text('Keyboard / gamepad', (827,42),15,MUTED)
         self.panel((20, 139, 900, 636), (19, 33, 33), 16)
         self.camera()
         self.canvas.set_clip((30,150,880,610))
@@ -430,14 +469,17 @@ class App:
         self.canvas.blit(scenery_shade,(30,150))
         if self.trail:
             for pos in g.visited:
-                pygame.draw.circle(self.canvas, (78, 108, 79), self.center(pos), 2)
+                trail_color={'Golden':(158,139,80),'Moonleaf':(98,145,169),'Blossom':(163,113,145)}.get(self.cosmetic,(78,108,79))
+                pygame.draw.circle(self.canvas,trail_color,self.center(pos),2)
         for cell in g.dew:
             pygame.draw.circle(self.canvas, (246, 244, 190), self.center(cell), 2)
         for cell in g.seeds:
             seed(self.canvas, self.center(cell), max(8, self.cell//4), self.t if self.characters and not self.comfort else 0)
         for cell in g.berries:
             berry(self.canvas, self.center(cell), max(8, self.cell//4), self.t if self.characters and not self.comfort else 0)
-        frame = int(self.t*10) % 8 if self.characters and not self.comfort else 0
+        self.draw_world_extras()
+        self.draw_biome_features()
+        frame = int(g.elapsed*10) % 8 if self.characters and not self.comfort else 0
         size = int(self.cell*1.48)
         if g.decoy_time > 0:
             decoy = self.sprites.get('applin', size, 0).copy()
@@ -449,8 +491,10 @@ class App:
             pygame.draw.ellipse(self.canvas,(45,57, 50),(x-self.cell//3,y+self.cell//5,self.cell*2//3,max(3,self.cell//5)))
             flight_frame=(frame+index*2)%8 if self.characters and not self.comfort else 0
             if e.stunned>0:flight_frame=0
-            sprite=self.sprites.get(e.species.lower(),size,flight_frame,e.direction[0] or 1)
-            self.canvas.blit(sprite,(x-size//2,y-size//2-max(2,self.cell//8)))
+            sprite=self.bird_sprite(e,size,flight_frame)
+            height=0 if e.stunned>0 else max(2,self.cell//8)
+            if self.characters and not self.comfort and e.mood=='search': height+=int(math.sin(g.elapsed*3)*2)
+            self.canvas.blit(sprite,(x-size//2,y-size//2-height))
             if e.stunned > 0:
                 pygame.draw.circle(self.canvas, GOLD, (x, y-self.cell//2), 3)
             elif e.mood == 'chase':
@@ -458,7 +502,22 @@ class App:
         x, y = self.center(self.visual_player)
         if g.invulnerable > 0:
             pygame.draw.circle(self.canvas, GREEN, (x, y), self.cell//2, 2)
-        self.canvas.blit(self.sprites.get('applin', size, frame, g.direction[0] or 1), (x-size//2, y-size//2))
+        hero=self.hero_sprite(size,frame,g.direction)
+        if g.camouflage > 0:
+            hero=hero.copy(); hero.set_alpha(125)
+        lift=int(math.sin(self.celebrate/.7*math.pi)*3) if self.celebrate>0 and self.characters and not self.comfort else 0
+        self.canvas.blit(hero, (x-size//2,y-size//2-lift))
+        if g.coop:
+            self.text('1',(x,y-self.cell*.7),11,TEXT,center=True)
+            px,py=self.center(self.visual_partner)
+            if g.partner['pos']==g.player:
+                px+=self.cell//3
+                py+=self.cell//8
+            hero2=self.hero_sprite(size,frame,g.partner['direction'],True)
+            if g.partner['down'] or g.partner['camouflage']>0:
+                hero2=hero2.copy(); hero2.set_alpha(115)
+            self.canvas.blit(hero2,(px-size//2,py-size//2))
+            self.text('HELP' if g.partner['down'] else '2',(px,py-self.cell*.7),11,GOLD if g.partner['down'] else TEXT,center=True)
         for x, y, vx, vy, life, color in self.particles:
             leaf(self.canvas, (int(x), int(y)), max(1, life*6), color, self.t*3)
         self.draw_exit_marker()
@@ -477,9 +536,9 @@ class App:
             rect=pygame.Rect(962+i*width,310,width-4,9)
             pygame.draw.rect(self.canvas,GOLD if i<tier.seeds-len(g.seeds) else EDGE,rect,border_radius=3)
         self.text('Follow the light to the shrine' if not g.seeds else 'Gather every seed for the shrine',(962,324),12,MUTED)
-        self.text(f'LEAF SLIP / {g.escapes} left',(962,343),17,GREEN,bold=True)
-        self.button('Escape  [SPACE]',(960,375,270,43),'escape',True)
-        status = 'Shield active' if g.invulnerable > 0 else 'Birds slowed' if g.slow_time > 0 else 'Concealed in tall grass' if g.player in g.hidden_cells else 'Watch the trails'
+        self.text(f'{g.ability.upper()} / {g.escapes}',(962,343),17,GREEN,bold=True)
+        self.button(f'Escape [{self.controls.key_name(0,4)}]',(960,375,270,43),'escape',True)
+        status = 'Camouflaged' if g.camouflage > 0 else 'Shield active' if g.invulnerable > 0 else 'Birds slowed' if g.slow_time > 0 else 'Concealed in tall grass' if g.player in g.hidden_cells else 'Watch the trails'
         self.text(status,(962,430),14,MUTED)
         pygame.draw.line(self.canvas,EDGE,(960,459),(1230,459))
         statuses=self.predator_statuses()
@@ -491,22 +550,23 @@ class App:
             self.text(enemy.species,(990,y),14,TEXT)
             self.text(status,(1133,y+1),11,RED if status=='CHASING' else GOLD if status=='STUNNED' else MUTED,bold=True)
         self.text(f'SCORE {g.score:,} / HITS {g.hits}',(962,632),15,GOLD)
-        self.text(f'DEW {g.dew_collected}/{g.initial_dew}',(962,657),12,MUTED)
+        self.text(f'RESCUED {g.rescued}/2 / DEW {g.dew_collected}',(962,657),12,MUTED)
         seed(self.canvas,(972,692),8,0)
         self.text('Seed',(986,683),12,TEXT)
         berry(self.canvas,(1052,692),7)
         self.text('Berry',(1065,683),12,TEXT)
         pygame.draw.rect(self.canvas,(182,144,88),(1130,685,14,16),3)
         self.text('Exit',(1150,683),12,TEXT)
-        self.text('Seeds fill the bar. The shrine is home.',(962,711),12,MUTED)
+        self.text(f'{self.controls.key_name(0,5)}: interact / ledge',(962,711),12,MUTED)
         self.button('Comfort ON / map stays still' if self.comfort else 'V  Full map / quiet camera',
                     (960,737,270,27),'overview',small=True)
-        notice = g.notice if g.notice_time > 0 else f'{TRACKS[g.tier][1]}  /  {len(g.enemies)} pursuers  /  V map  /  M music  /  F1 guide'
+        self.text(g.biome_prompt(),(674,106),11,GOLD)
+        notice = g.notice if g.notice_time > 0 else self.interaction_hint()
         self.text(notice, (30, 793), 16, GREEN if g.notice_time > 0 else MUTED)
 
     def predator_statuses(self):
         return [(enemy, 'STUNNED' if enemy.stunned>0 else 'DECOY' if self.game.decoy_time>0 else
-                 'CHASING' if enemy.mood=='chase' else 'PATROL') for enemy in self.game.enemies]
+                 'WARNING' if enemy.warning>0 else 'LURED' if enemy.mood=='lured' else 'RECOVER' if enemy.mood=='recover' else 'CHASING' if enemy.mood in ('chase','swoop') else 'SEARCH' if enemy.mood=='search' else 'PATROL') for enemy in self.game.enemies]
 
     def draw_exit_marker(self):
         g=self.game
@@ -519,6 +579,10 @@ class App:
             d.rect(self.canvas,(231,215,177),(x+dx,y-r//2,4,r+r//2))
         d.polygon(self.canvas,(94,68,112),[(x-r-3,y-r//2),(x,y-r-6),(x+r+3,y-r//2)])
         d.line(self.canvas,(192,149,116),(x-r-2,y-r//2),(x+r+2,y-r//2),2)
+        if self.cosmetic!='Orchard':
+            accent={'Golden':GOLD,'Moonleaf':(147,201,241),'Blossom':(243,171,207)}[self.cosmetic]
+            for dx in (-r//2,r//2):
+                leaf(self.canvas,(x+dx,y-r//2-3),3,accent,dx*.2)
         animated=self.characters and not self.comfort
         opened=0.0 if g.seeds else self.shrine_open if animated else 1.0
         inner=pygame.Rect(x-r+7,y-r//2+2,max(8,2*r-14),r+r//2-3)
@@ -554,10 +618,10 @@ class App:
         self.backdrop()
         self.header('A field guide to getting home.', 'All five tiers are available in practice. Expedition mode takes you through them in order.')
         items = [
-            ('01', 'Gather the light', 'Collect every gold sun seed, then step onto the sanctuary gate.', 'Small dew drops are optional: each adds 10 points.'),
-            ('02', 'Read the flock', 'Pidgeotto, Spearow, Murkrow, Talonflame and Cramorant each have a role.', 'Tall grass reduces detection. Blue berries slow the flock for 6 seconds.'),
-            ('03', 'Make your escape', 'SPACE uses one Leaf Slip: hop to a safer corridor and leave a decoy.', 'You gain a 2-second shield; nearby birds pause. Charges do not refill.'),
-            ('04', 'Keep your footing', 'Getting caught costs a heart and sends you back to the nest.', 'Collected items stay collected. Run out of hearts and the attempt ends.'),
+            ('01', 'Gather the light', 'Collect every gold sun seed, then step onto the sanctuary gate.', 'Dew adds 10 points. Rescue each enclosed Budew for an optional 350 points.'),
+            ('02', 'Read the flock', 'Pidgeotto, Spearow, Murkrow, Talonflame and Cramorant each have a role.', 'Gold route circles warn of a swoop. Grass hides you; blue berries slow birds.'),
+            ('03', 'Make your escape', 'Choose Leaf Slip, Quick Dash, Decoy Apple or Camouflage in Adventure setup.', 'SPACE uses P1 ability; RIGHT SHIFT uses P2 ability. Co-op shares limited charges.'),
+            ('04', 'Keep your footing', 'Each biome has a special interaction. Press your Interact key near its marker.', 'Fruit lures, tides, bells, turning gates and wind rides create different routes.'),
         ]
         for i, (number, title, a, b) in enumerate(items):
             y = 159+i*125
@@ -566,8 +630,8 @@ class App:
             self.text(title, (132, y+15), 22, TEXT, bold=True)
             self.text(a, (132, y+49), 17, MUTED)
             self.text(b, (132, y+77), 15, MUTED)
-        self.text('WASD / arrows: move    SPACE: escape    P / ESC: pause    V: map    M: music    F11: fullscreen', (48, 688), 17, TEXT)
-        self.text('Full map is the default. V enables the optional camera. Character and scenery animation have separate settings.', (48, 723), 15, MUTED)
+        self.text('Default keys: WASD / arrows move, SPACE escape, E interact. Remap them in Settings > Controls.', (48, 688), 17, TEXT)
+        self.text('Gamepad: left stick / D-pad moves, A uses ability, X interacts, Start pauses. V toggles the optional camera.', (48, 723), 15, MUTED)
         self.button('Back', (48, 766, 170, 44), 'back', True)
 
     def draw_settings(self):
@@ -577,17 +641,20 @@ class App:
             ('Comfort Mode', 'Locks the full map and disables character animation', self.comfort, 'comfort'),
             ('Music', 'Five original biome themes; changes automatically with the stage', self.audio.music, 'music'),
             ('Sound effects', 'Collectibles, Leaf Slip, close calls and victory', self.audio.effects, 'effects'),
-            ('Character animation', 'Wingbeats, item highlights, collection bursts and shrine doors', self.characters, 'characters'),
+            ('Character animation', 'Wingbeats, item highlights, expressions and shrine doors', self.characters, 'characters'),
             ('Scenery animation', 'Disabled by Comfort Mode' if self.comfort else 'Optional bobbing, particles, ripples and movement smoothing', self.motion, 'motion'),
+            ('Particles', 'Local collection bursts; independent from scenery and character animation', self.particle_fx, 'particles'),
+            ('Adaptive music', 'A quiet rhythmic layer accompanies pursuit', self.adaptive_music, 'adaptive'),
             ('Footstep trail', 'Show the corridors you have visited', self.trail, 'trail'),
             ('Fullscreen', 'Also available with F11', self.fullscreen, 'fullscreen'),
         ]
         for i, (label, caption, value, action) in enumerate(options):
-            y = 148+i*75
-            self.panel((43, y, 1189, 67))
-            self.text(label, (65, y+8), 23, TEXT)
-            self.text(caption, (65, y+38), 14, MUTED)
-            self.button('ON' if value else 'OFF', (1074, y+12, 132, 42), action, value)
+            y = 140+i*62
+            self.panel((43, y, 1189, 56))
+            self.text(label, (65, y+5), 20, TEXT)
+            self.text(caption, (65, y+31), 13, MUTED)
+            self.button('ON' if value else 'OFF', (1074, y+7, 132, 42), action, value)
+        self.button('Controls / gamepads',(947,764,285,44),'controls',small=True)
         self.text('Audio ready' if self.audio.available else 'Audio unavailable on this device; the game remains playable.', (49, 704), 16, MUTED)
         self.button('Back', (48, 766, 170, 44), 'back', True)
 
@@ -635,8 +702,10 @@ class App:
             self.button('Resume adventure', (373, 391, 534, 52), 'resume', True)
             self.button('Settings', (373, 458, 257, 47), 'settings')
             self.button('How to play', (650, 458, 257, 47), 'help')
-            self.button('End attempt & return to menu', (373, 522, 534, 47), 'end')
-            self.text('Ending records this attempt as abandoned.', (640, 615), 15, MUTED, center=True)
+            self.button('Save & return to menu', (373, 522, 534, 47), 'save_menu')
+            self.button('Share challenge', (373,581,257,43), 'copy_code',small=True)
+            self.button('Abandon attempt', (650,581,257,43), 'end',small=True)
+            self.text('Progress also saves every 3 seconds and when you close.', (640,665),15,MUTED,center=True)
         else:
             g = self.game
             won = g.state == 'cleared'
@@ -659,11 +728,12 @@ class App:
                 self.text(f'{g.hits} close calls  /  {g.dew_collected} dew collected  /  {g.health} hearts left',
                           (640, 468), 17, MUTED, center=True)
             action = self.result_primary()
-            label = {'next': 'Continue to next difficulty', 'retry': 'Try a fresh maze', 'menu': 'Return to the orchard'}[action]
+            label = {'next': 'Continue to next difficulty', 'retry': 'Replay challenge' if g.mode=='challenge' else 'Try a fresh maze', 'menu': 'Return to the orchard'}[action]
             self.button(label, (373, 519, 534, 53), action, True)
             if action != 'menu':
                 self.button('Return to menu', (373, 589, 534, 47), 'menu')
-            self.text('Result saved to your local journal.', (640, 675), 14, MUTED, center=True)
+            self.button('Share challenge',(373,650,257,40),'copy_code',small=True)
+            self.button('Collection journal',(650,650,257,40),'journal',small=True)
 
     def draw(self):
         self.canvas.fill(BG)
@@ -680,6 +750,14 @@ class App:
             self.draw_settings()
         elif self.screen == 'records':
             self.draw_records()
+        elif self.screen == 'controls':
+            self.draw_controls()
+        elif self.screen == 'adventure':
+            self.draw_adventure()
+        elif self.screen == 'journal':
+            self.draw_journal()
+        elif self.screen == 'challenge':
+            self.draw_challenge()
         elif self.screen == 'error':
             self.header('The adventure needs a moment.', 'A local file or save operation could not be completed.')
             # Wrap long OS messages instead of clipping.
@@ -694,8 +772,9 @@ class App:
         pygame.display.flip()
 
     def close(self):
-        if self.game:
-            self.game.abandon()
+        if self.game: self.consume_events()
+        self.save_expedition()
+        self.controls.close()
         self.store.close()
         pygame.quit()
 
@@ -713,6 +792,7 @@ class App:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--save-dir', help='Optional separate local save directory')
+    parser.add_argument('--verify-build', action='store_true', help='With --preview, verify bundled audio and controller imports')
     parser.add_argument('--preview', help='Render menu and all five tiers to this folder using a temporary save')
     args = parser.parse_args()
     if args.preview:
@@ -720,15 +800,22 @@ def main():
         folder.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory() as directory:
             app = App(directory)
+            if args.verify_build:
+                if not app.audio.available or len(app.audio.danger_layers)!=5 or not app.controls.enabled:
+                    raise RuntimeError('Bundled audio or controller support did not load.')
+                required={'fruit','bell','turn','wind','warning','rescue'}
+                if not required <= app.audio.sounds.keys():
+                    raise RuntimeError('Bundled biome effects are missing.')
             pygame.image.save(app.canvas, str(folder/'menu.png'))
             for tier in range(5):
                 app.start(tier)
                 app.draw()
                 pygame.image.save(app.canvas, str(folder/f'tier_{tier+1}.png'))
                 app.game.abandon()
-            app.screen = 'help'
-            app.draw()
-            pygame.image.save(app.canvas, str(folder/'help.png'))
+            for screen in ('help','settings','controls','adventure','journal'):
+                app.screen=screen
+                app.draw()
+                pygame.image.save(app.canvas,str(folder/f'{screen}.png'))
             app.close()
     else:
         App(args.save_dir).run()

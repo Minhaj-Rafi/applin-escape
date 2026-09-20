@@ -34,12 +34,14 @@ class World:
         return water_channel(self.game.tier,x,y,self.game.config.width,self.game.config.height)
 
     def tile_kind(self, x, y, wall):
+        g=self.game
+        if getattr(g,'rules_version',30)>=31:
+            if g.tier==1 and g.bridge and (x,y)==g.bridge[0]: return 'water' if wall else 'bridge'
+            if g.tier==3 and (x,y) in g.ruin_gates: return 'ruin' if wall else 'paving'
         if self.channel(x, y):
             return 'water' if wall else 'bridge'
         if not wall:
-            around = sum(1 for dx, dy in ((1,0),(-1,0),(0,1),(0,-1))
-                         if 0 <= y+dy < len(self.game.grid) and 0 <= x+dx < len(self.game.grid[0]) and not self.game.grid[y+dy][x+dx])
-            if around >= 3 and (x*7+y*3)%4:
+            if (x,y) in self.game.hidden_cells:
                 return 'grass'
             return 'paving' if self.game.tier in (2, 4) else 'path'
         if self.game.tier in (2, 4) and (x*3+y*7)%9 < 4:

@@ -4,7 +4,7 @@ cd /d "%~dp0"
 title Applin Escape
 
 echo.
-echo   APPLIN ESCAPE - COMFORT AND CLARITY
+echo   APPLIN ESCAPE - LIVING BIOMES 3.1
 echo   First launch sets up a private Python environment.
 echo.
 
@@ -28,7 +28,7 @@ if errorlevel 1 (
     if errorlevel 1 goto setup_failed
 )
 
-".venv\Scripts\python.exe" main.py
+".venv\Scripts\python.exe" launch.py
 if errorlevel 1 (
     echo.
     echo The game stopped with an error. Please copy the message above.

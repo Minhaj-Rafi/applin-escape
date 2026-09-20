@@ -5,7 +5,7 @@ import pygame
 CREAM = (246, 237, 213)
 
 
-def applin(size=96, frame=0, facing=1):
+def applin(size=96, frame=0, facing=1, gaze=(0,0), blink=False):
     s = pygame.Surface((128, 128), pygame.SRCALPHA)
     d = pygame.draw
     bob = (0, -2, 0, 1)[frame % 4]
@@ -26,8 +26,13 @@ def applin(size=96, frame=0, facing=1):
     d.ellipse(s, (157, 205, 78), (72, 4 + bob, 30, 36))
     d.ellipse(s, (249, 239, 198), (37, 13 + bob, 16, 23))
     d.ellipse(s, (249, 239, 198), (77, 11 + bob, 16, 23))
-    d.ellipse(s, (41, 54, 35), (43, 17 + bob, 6, 16))
-    d.ellipse(s, (41, 54, 35), (81, 15 + bob, 6, 16))
+    if blink:
+        d.line(s,(41,54,35),(39,24+bob),(51,24+bob),3)
+        d.line(s,(41,54,35),(79,22+bob),(91,22+bob),3)
+    else:
+        dx,dy=gaze[0]*2,gaze[1]*2
+        d.ellipse(s, (41, 54, 35), (43+dx, 17+bob+dy, 6, 16))
+        d.ellipse(s, (41, 54, 35), (81+dx, 15+bob+dy, 6, 16))
     d.line(s, (99, 76, 41), (65, 41 + bob), (65, 24 + bob), 5)
     if facing < 0:
         s = pygame.transform.flip(s, True, False)

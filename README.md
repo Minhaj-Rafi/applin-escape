@@ -1,221 +1,158 @@
-# Applin Escape — Sunseed Edition (v2.4)
+# Applin Escape — Living Biomes (v3.1)
 
-A complete offline desktop maze-chase fan-game demo. Guide Applin through five scenic difficulty tiers while a mixed flock of autonomous bird Pokémon patrols and pursues it. Includes original code-drawn 2D fan sprites, animation, five original biome music tracks plus a menu theme, sound effects, local records, and persistent map-repeat prevention.
+An offline 2D maze adventure built with Python and Pygame. Lead Applin through five outdoor biomes, collect sun seeds, rescue optional Budew, outwit flying pursuers and reach the animated sanctuary. Play alone or with a second player on the same keyboard.
 
+This upgrade builds on v3.0 and preserves its v2.4 foundation. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
 
-## Sunseed update (v2.4)
+![Wetland co-op](previews/tier_2.png)
 
-- The gold seed is now a pointed teardrop with a rounded body, warm shading and a central seam. The berry is round and cobalt blue, with violet shading, a pale highlight and a bright leafy crown. Their silhouettes and palettes differ without heavy badge outlines.
-- Pickups retain a minimum display size on the full map. Gentle local highlights and leaf motion are controlled by Character animation; scenery remains stationary by default.
-- Collection bursts now work with Character animation enabled, without requiring animated scenery.
-- The enlarged shrine's double doors open over 1.1 seconds after the last seed is collected, revealing a softly lit interior and small rising motes. The animation freezes while paused. With animation disabled or Comfort Mode enabled, the open doorway is shown immediately. The visual transition does not delay the gameplay unlock.
-- All five tiers have stronger pursuit: lower movement intervals, greater detection distances, shorter patrol phases and 14-second chase phases. Escape charges are now 3, 2, 2, 1 and 1.
-- Full map remains the default, with predator names, chase count and the seed progress bar retained. No camera shake, strobe or screen flash is added.
+## Start on Windows
 
-Difficulty still needs human playtesting. Stop if visual discomfort occurs; use Character animation OFF or Comfort Mode to reduce local animation.
-
-## Biome features retained
-
-- Handheld-inspired outdoor maps with trees, dirt trails, tall grass, flowers, rocks, shrine paving, ruined walls, animated water and wooden bridges.
-- Connected clearings change the layouts, giving Applin space to dodge. Every accepted layout is still checked against your history.
-- An optional following camera uses larger tiles and characters. The stationary full map is the default; V switches to the optional camera when Comfort Mode is off. The HUD prioritizes the predator roster and collectible legend.
-- Tall grass halves a bird's detection range, with a minimum range of three cells. It reduces detection, not collision damage or the need to keep moving.
-- Five species with distinct custom sprites and assigned roles.
-- Five original looping tracks, automatically selected by biome. Muting persists when the track changes.
-
-### Landscapes and music
-
-These are design inspirations for newly created work, not reconstructions of official maps or songs.
-
-| Stage | Landscape | Broad inspiration | Original track | Arrangement |
-| --- | --- | --- | --- | --- |
-| 1 | Bramblebrook Orchard | Bright FireRed/LeafGreen-style outdoor routes | Bramblebrook Morning | Pulse lead, bass, light percussion; 112 BPM |
-| 2 | Tideglass Wetlands | Ruby/Sapphire/Emerald-style coastal exploration | Tideglass Crossing | Marimba-like lead, bass and percussion; 126 BPM |
-| 3 | Bellfern Shrine | SoulSilver-style woodland atmosphere | Bells Beneath the Ferns | Bells, spacious accompaniment; 90 BPM |
-| 4 | Copperleaf Ruins | Black/White-style seasonal scenery | Copperleaf Footsteps | Reed-like lead, rhythmic bass and percussion; 136 BPM |
-| 5 | Starfall Highlands | X/Y-style scenic highlands, reimagined in 2D | A Sky Full of Waypoints | Glassy lead, echoes and soft bass; 104 BPM |
-
-Tracks are approximately 28–37 seconds each. All melodies, arrangements and PCM audio files were generated for this project. No official recordings or transcribed Pokémon themes are included.
-
-### Bird roster by stage
-
-| Stage | Gameplay pursuers |
-| --- | --- |
-| Breezy | Pidgeotto |
-| Watchful | Cramorant, Spearow |
-| Daring | Murkrow, Pidgeotto, Spearow |
-| Relentless | Talonflame, Murkrow, Pidgeotto, Cramorant |
-| Apex | Talonflame, Murkrow, Spearow, Pidgeotto, Cramorant |
-
-These species are selected as opponents for this fan game's scenario. This roster is **not a verified list of species canonically documented as preying on Applin**. The official Pokédex pages could not be read during verification, so no species-specific claim is made here.
-
-### Updating from the previous demo
-
-Extract the new ZIP into a fresh folder and run its `PLAY_WINDOWS.bat`. Close the old game first. The same local save database is used automatically, so your map history, settings and journal remain available. The new folder may install its own private environment on first launch.
-
-## START HERE — Windows
-
-1. Extract **the entire ZIP** using **Extract All**. Do not run from inside the ZIP viewer.
-2. Open the extracted `applin_escape` folder.
+1. Extract **the entire ZIP** into a new folder.
+2. Open its `applin_escape` folder.
 3. Double-click **PLAY_WINDOWS.bat**.
+4. Select **Tutorial**, or **Adventure setup** to choose your ability, rules and player count.
 
-The launcher opens its own folder automatically, finds Python, creates a private `.venv` environment, installs Pygame on first launch, and opens the game. Python 3.10–3.12 is recommended; Python 3.10 is supported. Internet is needed only for first-time dependency installation. Later launches work offline. If setup fails, the launcher leaves the error visible.
+Python 3.10 or newer is needed for the source package. The launcher creates a private environment and installs Pygame on first use; internet is needed for that setup only. The actual game is offline.
 
-Already have Pygame? Manual launch from PowerShell works too:
+If launching in PowerShell, first enter the extracted game folder containing `main.py` and `requirements.txt`:
 
 ```powershell
-cd "C:\Users\NUHAN\Downloads\Applin_Escape_Advanced\applin_escape"
+cd "C:\path\to\applin_escape"
 py -m pip install -r requirements.txt
-py main.py
+py launch.py
 ```
 
-That example assumes the ZIP was extracted into `Applin_Escape_Advanced` in Downloads. If your folder name differs, open the folder containing `main.py`, type `powershell` into File Explorer's address bar, then run the last two commands.
+No need to delete the older version. The game keeps its existing local map history and previous results. New achievements are earned in v3.0; they are not inferred from old runs.
 
-On Linux/macOS, open a terminal in the game folder, create a virtual environment with `python3 -m venv .venv`, activate it with `source .venv/bin/activate`, then run `python -m pip install -r requirements.txt` and `python main.py`.
+## Living Biomes update (v3.1)
 
-## Your mission
+| Biome | New interaction | How to use it |
+|---|---|---|
+| Orchard | Falling fruit lure | Interact beside a fruit tree. After a short drop warning, nearby birds investigate for five seconds. Each tree rests for 14 seconds. |
+| Wetlands | Tidal stepping stones | The optional crossing opens for 10 seconds per 16-second cycle. The last two seconds turn amber. It waits for occupants to leave before closing. |
+| Shrine | Brass bells | Interact beside a bell to draw nearby birds toward it for six seconds. Each bell rests for 14 seconds. |
+| Ruins | Turning shortcut gates | Interact beside the wheel. After a 1.5-second preview, one gate closes and the other opens. An occupied gate waits before closing. |
+| Highlands | Wind lanes | Interact on a marked lane for a shielded three-tile wind ride. Quick Dash reaches up to six tiles when aligned with the wind. |
 
-Collect every **gold sun seed** and reach the **sanctuary gate**. The wooden shrine doorway lights up when unlocked. Small dew drops are optional score pickups. Blue chill berries slow the flock for six seconds.
+The Interact key defaults to **E for P1** and **Right Ctrl for P2**. New markers are drawn into the biome: fruit trees, bell posts, stepping stones, gate pillars and feather-like wind arrows. The top HUD explains the biome interaction, and the bottom line offers a control hint when no notice is active.
 
-The stationary full map is the default. Press **V** for the optional camera, or use Comfort Mode to lock the full map and disable character animation. Use loops to evade birds instead of retreating into dead ends. A red dot above a pursuer signals pursuit; a gold dot means it is stunned. A green ring around Applin is a temporary safety shield.
+These mechanics create optional routes and distractions. They do not delete original maze corridors, so every required objective remains reachable. The ruin mechanism swaps two marked shortcut gates; it does not rotate the entire map. In the wetlands, the tide replaces the old switch-controlled bridge. In the ruins, the wheel replaces it. Other biomes retain the original timed bridge switch and ledge.
 
-### Modes
+Birds now get longer warning windows in Standard and Relaxed, plus extra warning in the highlands. Standard and Relaxed allow at most one committed swoop at once; Expert allows two. Other birds may still patrol or chase normally. Swoops have a brief recovery, and a P1 respawn clears pending attacks. This is deliberate timing, not hidden automatic difficulty adjustment.
 
-- **Five-stage expedition:** progress through all five tiers. Hearts and escape charges reset for each stage. A failed stage can be retried on a fresh map; already-cleared stages remain completed in the current expedition.
-- **Practice:** choose any tier immediately. Every attempt creates a fresh maze.
-- **Journal:** recent results and best cleared-stage score, saved locally.
+### Keyboard and controller setup
 
-This is a single-player desktop demo. There is no online multiplayer or mid-attempt resume after closing the application. Settings, map history and completed/abandoned attempt records persist. Expedition progression lasts for the current application session.
+Open **Settings → Controls / gamepads**. Click a movement, ability or interaction binding and press its replacement key. Conflicting bindings are rejected; Esc cancels. Shared menu shortcuts stay reserved. Reset bindings restores the defaults.
 
-## Five distinct difficulty tiers
+SDL-mapped gamepads support left stick / D-pad movement, **A (south) for ability**, **X (west) for interaction**, and **Start for pause**. In menus, D-pad moves focus, A confirms and B returns. Ability and interaction buttons can be rebound. Choose which co-op player uses the first pad; a second pad uses the other player. Stick deadzone can be 20%, 30% or 40%. Disconnecting a controller pauses gameplay.
 
-| Tier | Environment | Maze cells | Pursuers | Base bird step interval | Leaf Slips | Hearts | Sun seeds | Detection distance |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Breezy | Bramblebrook Orchard | 21 × 17 | 1 | 0.28 s | 3 | 3 | 3 | 12 cells |
-| Watchful | Tideglass Wetlands | 25 × 19 | 2 | 0.23 s | 2 | 3 | 4 | 16 cells |
-| Daring | Bellfern Shrine | 29 × 21 | 3 | 0.19 s | 2 | 3 | 5 | 20 cells |
-| Relentless | Copperleaf Ruins | 33 × 23 | 4 | 0.17 s | 1 | 2 | 6 | 24 cells |
-| Apex | Starfall Highlands | 37 × 25 | 5 | 0.155 s | 1 | 2 | 7 | 30 cells |
+Unsupported/unmapped joysticks are not treated as if they had a known layout. Input logic is tested using simulated devices; physical-controller testing is still pending. Implementation follows the [Pygame SDL controller API](https://www.pygame.org/docs/ref/sdl2_controller.html).
 
-Detection uses walkable path distance. Individual birds have small speed offsets; Talonflame receives an additional 10% reduction in its movement interval. Applin moves once every 0.135 seconds while a movement key is held. Later tiers have shorter patrol breaks as well as larger maps and greater pursuit range. These are initial balance values; human playtesting can guide further tuning.
+### Existing saves and challenge codes
+
+New games use **AE31** codes. **AE3** codes continue to generate v3.0 challenges with their original terrain and pursuit timings. An existing v3.0 active save resumes under its legacy rules; newly generated stages use v3.1. Existing map history, records, achievements and settings remain. New personal bests are separated by rules version as well as the existing mode settings.
+
+## New adventures
+
+- **Four selectable abilities.** Leaf Slip hops to a safer corridor with a decoy, nearby stun and short shield. Quick Dash travels up to four straight corridor tiles with a brief shield. Decoy Apple distracts birds for seven seconds. Camouflage prevents detection of P1 and contact damage for five seconds; in co-op birds can still pursue the visible partner. All abilities use the same limited charge pool and cooldown. Wind rides have a separate two-second cooldown and do not spend charges. Berries slow birds; they do not refill charges.
+- **Three challenge settings across five biomes.** Relaxed adds a heart, two charges and slower birds. Standard strengthens ordinary pursuit. Expert increases speed further. Difficulty does not secretly adjust during a run.
+- **Telegraphed swoops.** Gold circles mark a bird's committed route. A warning sound and exclamation precede its accelerated flight. Change route during the warning; the swoop does not home in after commitment. All bird movement follows walkable corridors.
+- **Optional rescue routes.** Walk over each twig-enclosed Budew for 350 points. Both rescues plus a stage win unlock Blossom style. Rescues are not required to unlock the shrine.
+- **Interactive shortcuts.** In the orchard, shrine and highlands, walk onto the teal diamond switch to open a bridge shortcut for 12 seconds. A bridge stays open until everyone leaves its tile. White arrows mark one-way ledges: press E at the tail to jump to the other side. Shortcuts are optional; the underlying maze stays connected.
+- **A final pursuit.** Collecting the last seed announces a three-second warning, after which the flock pursues more aggressively. The shrine is immediately available; its opening animation does not hold you back.
+- **Playable tutorial.** Practice movement, grass concealment, abilities, seeds and escape without losing health. Tutorial charges refill, and tutorial wins do not award normal cosmetics or personal bests.
+- **Local co-op.** P1 uses WASD and P2 uses arrows. Seeds, score and escape charges are shared. P1 being caught costs a shared heart and resets the flock; P2 becomes temporarily downed. P1 can touch P2 to rescue them, or P2 recovers at the nest after eight seconds. Both apples must reach the shrine. Running out of shared hearts ends the attempt.
 
 ## Controls
 
-| Input | Action |
-| --- | --- |
-| WASD / arrow keys | Move; hold to keep moving |
-| Space | Use a limited Leaf Slip escape |
-| P / Escape | Pause; Escape resumes from pause |
-| Enter | Start expedition, resume, or select the main result action |
-| 1–5 in the menu | Select a practice tier |
-| T | Toggle visited-corridor trail |
-| V | Switch views only with Comfort Mode OFF; stationary map otherwise |
-| M | Toggle music |
-| F1 during play | Pause and open the field guide |
-| F11 | Toggle fullscreen |
-| Tab, then Enter | Focus and activate menu buttons |
-| Mouse | Use menus and on-screen buttons |
+| Action | Solo / Player 1 | Player 2 in co-op |
+|---|---|---|
+| Move | WASD; arrows also work in solo | Arrow keys |
+| Escape ability | Space | Right Shift |
+| One-way ledge | E | Right Ctrl |
+| Pause/resume | P / Esc | Shared |
+| Full map / optional quiet camera | V | Shared |
+| Trail | T | Shared |
+| Music | M | Shared |
+| Field guide | F1 | Shared |
+| Fullscreen | F11 | Shared |
+| Menu keyboard navigation | Tab then Enter | Shared |
 
-Resize the window freely; the game maintains its proportions. Losing window focus automatically pauses gameplay. Music may continue while paused and can be muted independently. Settings also allow disabling sound effects and reducing animation.
+Some keyboards cannot register many simultaneous keys. If a co-op input does not register, try another keyboard. Controller support is available through Settings. Online multiplayer is not part of this version.
 
-## Leaf Slip: your limited escape move
+## Saving and continuing
 
-Press **Space** before a bird catches you.
+The game saves every three seconds while playing, on focus loss, and when closing normally. **Pause → Save & return to menu** gives an explicit save. Choose **Continue saved** to restore the map, collected items, birds, timers, random state, rules and expedition results. A cleared expedition stage is also saved so you can return later and continue to the next biome.
 
-1. Search the maze graph for a floor cell 5–14 walking steps away and at least five walking steps from a bird.
-2. Prefer the safest available candidate. If necessary, widen the search and require at least three steps of separation.
-3. Teleport Applin there without crossing through walls as an ordinary move.
-4. Leave a decoy for 3.5 seconds, stun nearby birds for 2 seconds, and grant a 2-second shield.
-5. Consume one charge and apply a 1.5-second cooldown.
+There is one active save slot. Starting a new adventure or challenge replaces that slot. **Abandon attempt** records an abandoned result; it does not create a resumable save. If the process is forcibly killed, up to the last three seconds of progress can be lost.
 
-Charges never refill within the stage. If there is no acceptable destination, the charge is preserved. Leaf Slip is tracked separately from walking steps. It is a custom ability for this game, not a claim about official Pokémon move rules.
+Windows saves: `%LOCALAPPDATA%\ApplinEscape\progress.sqlite3`. Copy the save folder while the game is closed to back it up. Graphics and audio assets are never written into that folder. Crash reports from the launcher are written to `last_error.txt` there.
 
-## Pursuer AI
+## Journal, achievements and cosmetics
 
-Every bird follows legal corridors and alternates between patrol and pursuit:
+**Adventure setup → Collection journal** contains illustrated bird entries, biome stamps, six achievements and personal bests. Best time, fewest steps and no-hit completions are tracked separately by biome, difficulty, ability, solo/co-op and game mode. Challenge records also include the challenge code. Best time and fewest steps can come from different runs; the visible list shows the nine most recently inserted rule categories.
 
-- **Pidgeotto / Talonflame — Tracker:** heads toward Applin's current cell. Talonflame moves slightly faster.
-- **Spearow — Ambusher:** targets up to four cells ahead of Applin's movement direction.
-- **Cramorant — Warden:** guards a remaining sun seed or the exit, switching to direct pursuit when close.
-- **Murkrow — Roamer:** mixes direct pursuit with its roaming target.
+| Style | How to unlock | Appearance |
+|---|---|---|
+| Orchard | Available from the beginning | Original apple |
+| Golden | Clear a non-tutorial stage | Golden body, warm trail and shrine leaves |
+| Moonleaf | Clear without a hit | Blue apple, cool trail and shrine leaves |
+| Blossom | Rescue both Budew and clear | Pink apple, flower accessory, pink trail and shrine leaves |
 
-Birds use breadth-first search to find shortest routes. They follow a decoy during its lifetime and slow down after a chill berry is collected. Neighbor reservation and alternate steps reduce birds blocking each other indefinitely.
+P2 uses a blue palette and numbered marker to remain distinguishable. Styles have no gameplay bonuses.
 
-## How map repetition is prevented
+## Shareable challenges and map history
 
-Randomized depth-first search builds a connected maze. A braiding pass removes most dead ends and creates escape loops. Connected clearings add room to dodge; terrain then creates paths, tall grass, water crossings and landmarks. Objectives are spread across the maze, the exit is far from the starting nest, and birds initially spawn at least 16 path steps away.
+Use **Share challenge** on the pause or result screen. The full `AE31-...` code (or `AE3-...` for a legacy game) is shown, copied to the clipboard when supported, and written to `challenge_code.txt` in the save folder. A friend enters it through **Adventure setup → Challenge code**. The code fixes the biome, random seed, challenge setting, ability and player count. It restarts the adventure from the beginning rather than copying your current progress.
 
-Before a layout is accepted, the game:
+Normal adventures reject previously generated base maze layouts, including their rotations and reflections, using persistent local history. Clearing or moving that history resets the guarantee; separate computers have separate histories. Challenge mode deliberately permits repeat maps and does not consume a normal-history entry. Codes are versioned: AE31 for v3.1 and AE3 for legacy v3.0 rules. Matching codes guarantee matching initial maps and objectives, not matching outcomes after different inputs.
 
-1. Normalizes rotations and reflections to a canonical representation.
-2. Checks the entire canonical layout and its SHA-256 fingerprint against the local SQLite history.
-3. Saves an unseen layout transactionally; if it already exists, generates another.
+## Animation, graphics and sound
 
-**No previously accepted layout is presented again while this computer's history is retained**, even if it is mirrored or rotated. This is a local guarantee, not a claim that finite grids have infinite unique possibilities. Deleting/resetting the save database, using a different save directory, or playing on another computer removes that shared history. After 256 unsuccessful candidates, the game reports an error instead of knowingly presenting a repeat. A maze reserved before a crash may remain in history without having been played.
+- Recognizable original bird palettes, crests and wingbeats; north/south flight views and horizontal flight views; lowered stunned poses and searching hover.
+- Applin eye glances toward nearby birds, periodic blinks, small seed celebrations and unlockable appearances.
+- Local grass disturbances, optional collection particles, gently animated rescue creatures, seed/berry details and shrine opening.
+- Five original biome compositions and a menu theme; warning and rescue sounds; biome-specific quiet pursuit rhythms fade in with danger.
+- Separate music, sound effects, adaptive music, particles, character animation, scenery animation and trail settings. Scenery animation defaults off.
+- Comfort Mode fixes the full map and stops decorative and character animation. Gameplay positions still change. No camera shake, screen flashes or strobing effects are added.
 
-## Measurements and scoring
+The optional quiet camera is available with V when Comfort Mode is off. It uses a stationary central zone and follows only when the player approaches an edge. Full-map mode remains the default for every new or resumed stage.
 
-The HUD shows active gameplay time, successful walking steps, hearts, sun seeds, remaining escapes, score, dew collected, and hits. Pause/help/settings time does not count. Escapes are measured separately; blocked movements do not add steps.
+## Landscapes and original tracks
 
-- Dew: **10 points** each.
-- Sun seed: **500 points** each.
-- Chill berry: **75 points** each.
-- Cleared-stage bonus: `max(0, 1800 - floor(seconds) × 3) + hearts × 250 + unused escapes × 150`.
+| Stage | Biome | Track | Broad visual influence |
+|---|---|---|---|
+| 1 | Bramblebrook Orchard | Bramblebrook Morning | Bright early handheld outdoor routes |
+| 2 | Tideglass Wetlands | Tideglass Crossing | Coastal exploration and wooden crossings |
+| 3 | Bellfern Shrine | Bells Beneath the Ferns | Woodland paths and shrine paving |
+| 4 | Copperleaf Ruins | Copperleaf Footsteps | Autumn routes and weathered ruins |
+| 5 | Starfall Highlands | A Sky Full of Waypoints | Rocky highlands and open skies |
 
-The end screen and journal show time, steps, escapes used and score. Campaign victory totals the five successful stages; failed attempts remain in the journal but are not part of that victory total. Leaving an active attempt records it as abandoned. The clock measures simulated active gameplay time; on an extremely slow machine, simulation is capped per frame rather than jumping ahead.
+Pidgeotto tracks, Cramorant guards objectives, Spearow ambushes ahead, Murkrow alternates pursuit and roaming, and Talonflame is a faster tracker. These are fan-game behavior assignments, not claims that every listed species canonically preys on Applin.
 
-## Saves and privacy
+All maps, drawings and music in this package were created for this project. No official game maps, sprite rips, recordings or transcribed themes are included. This is an unofficial Pokémon fan project, not affiliated with or endorsed by the Pokémon rights holders.
 
-Windows save location:
+## Build a Windows executable
 
-```text
-%LOCALAPPDATA%\ApplinEscape\progress.sqlite3
-```
+The package contains **build support, not a precompiled Windows EXE**. On Windows, double-click **BUILD_WINDOWS.bat**. It installs the pinned build requirements into a separate environment, runs a bundled-asset smoke check, and builds `dist\ApplinEscape\ApplinEscape.exe`.
 
-Linux/macOS default: `~/.local/share/ApplinEscape/progress.sqlite3`.
+Share **the entire `dist\ApplinEscape` folder**, including `_internal`, as a ZIP. Players using that built version do not need Python. The source package still uses the Python launcher above.
 
-Save state uses Python's built-in SQLite module. Back up the save folder with the game closed if you want to preserve your history. No account, telemetry or in-game network requests are used. `python main.py --save-dir PATH` selects a separate profile.
+The included `.github/workflows/windows-build.yml` provides a manually started Windows build with tests, bundled-asset preview checks and a downloadable artifact. It has not been run or published to your GitHub repository. Add all source files and folders at your repository root, including `.github`, before using it. The workflow only uploads a build artifact; it does not create a public release.
 
-## Files and customization
+Build approach follows [PyInstaller operating-mode documentation](https://pyinstaller.org/en/stable/operating-mode.html) and [spec-file documentation](https://pyinstaller.org/en/stable/spec-files.html). Windows builds must be produced on Windows. This development pass built and smoke-tested the frozen application on Linux, including bundled audio and controller imports. A Windows executable and physical-controller playtest still need the included Windows build and actual hardware.
 
-| File | Purpose |
-| --- | --- |
-| `main.py` | Game loop, input, menus, scaling, animation and HUD |
-| `model.py` | Difficulty settings, maze generation, AI, collision, escape logic, scoring and saves |
-| `art.py` | Original procedural character sprites and icons |
-| `audio.py` | Sound-effects synthesizer and runtime audio manager |
-| `compose.py` | Five original multi-part biome compositions |
-| `world.py` | Scenic terrain renderer, water, bridges, trees, ruins and shrine gates |
-| `assets/audio/` | Included original WAV music and effects |
-| `PLAY_WINDOWS.bat` | Windows setup and launch helper |
-| `tests/` | Automated rule, persistence, audio and interface checks |
-| `previews/` | Screenshots of the menu, guide and five tiers |
+## Development and verification
 
-Change the five `TIERS` entries in `model.py` to tune difficulty. Maze dimensions must be odd and large enough for the configured collectibles and enemies. The supplied five configurations are tested; arbitrary custom dimensions are not validated. `art.py` sprites are drawn on transparent surfaces and cached at the required display sizes. No external images or fonts are required.
-
-To regenerate sound assets, run `python audio.py` for effects/menu music and `python compose.py` for all five biome tracks. To produce new screenshots without affecting your save, run `python main.py --preview previews`.
-
-## Verification
-
-Run from the game folder:
-
-```text
+```bash
+python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
+python main.py --preview previews --verify-build
 ```
 
-The delivered version passed 30 automated tests, including 100 unique connected maps, objective reachability, safe spawns, mirror/rotation duplicate rejection across database reopen, escape charges and safe destinations, collision/respawn, five-stage progression, legal enemy movement, focus-loss pause, audio asset decoding, all-screen rendering, visible terrain/collision agreement, grass detection reduction, camera bounds, distinct pursuer sprites, five distinct music files with stage switching, fixed Comfort Mode camera, static decorative frames, low-motion defaults, quiet-zone stability, accurate pursuit/stun/decoy counts, full-map defaults on every stage, flight animation isolated from collision positions, revised difficulty parameters, distinct pickup shapes and colours, and shrine animation progression/pause behavior.
+For a machine without a display/audio device, set `SDL_VIDEODRIVER=dummy` and `SDL_AUDIODRIVER=dummy` before running tests. The suite also covers timed tides, occupied ruin gates, lures, wind rides, legacy migration, input remapping, controller actions and disconnects, in addition to the v3.0 map, save, co-op, audio and rendering checks. Human playtesting is still needed for difficulty and keyboard feel.
 
-Testing was performed on Linux with Python 3.12 and Pygame 2.6.1 using SDL's headless video/audio drivers. Menu, gameplay and guide screenshots were visually inspected. The Windows batch launcher was reviewed but not executed on a Windows host; audible playback and human difficulty balancing still need testing on your device.
+Audio is already included. Rebuild original base effects with `python audio.py`, biome music with `python compose.py`, and the new warning/rescue/pursuit sounds with `python compose_expansion.py`.
 
-## Troubleshooting
-
-- **Can't find `main.py` or `requirements.txt`:** use `PLAY_WINDOWS.bat` after extracting the entire ZIP. It changes to its own folder automatically.
-- **Pygame installation fails:** use Python 3.10, 3.11 or 3.12 and check internet access. Other Python versions may need a compatible binary wheel or build tools.
-- **No sound:** check Windows volume/mixer and the game's Settings. Audio failures do not stop gameplay.
-- **Small characters at Apex:** maximize the window if comfortable. Keep Comfort Mode enabled if scrolling caused discomfort.
-- **Cannot save:** check that your user profile's save directory is writable and that the drive has free space. Preserve the database when troubleshooting if you want repeat prevention to remain intact.
-- **Window appears stuck:** use Alt+Tab to give it focus, then Enter or Escape to resume from pause.
-
-## Credits
-
-Unofficial, noncommercial fan-game demo. Pokémon and the named species belong to their respective owners. This project uses newly drawn stylized fan sprites and newly synthesized music/effects; it does not include official game sprites, logos, music or recordings. Not affiliated with or endorsed by the Pokémon rights holders.
+Source layout: `model.py` contains the original rules and persistence; `expedition.py` extends them; `biome_rules.py` and `biome_ui.py` add v3.1 terrain; `controls.py` handles keyboard/gamepad input; `main.py` runs the app; `adventure_ui.py` contains the new screens and illustrations; `art.py` and `world.py` draw the sprites and scenery. `launch.py` is the desktop launcher.

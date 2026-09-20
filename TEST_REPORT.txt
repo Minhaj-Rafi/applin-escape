@@ -1,0 +1,79 @@
+Applin Escape v3.1 - verification
+Python 3.12.14 / Pygame 2.6.1 / Linux, SDL dummy video and audio.
+
+test_audio_assets_and_mixer_load (test_app.Interface.test_audio_assets_and_mixer_load) ... ok
+test_complete_campaign_and_result_actions (test_app.Interface.test_complete_campaign_and_result_actions) ... ok
+test_keyboard_pause_focus_loss_and_escape (test_app.Interface.test_keyboard_pause_focus_loss_and_escape) ... ok
+test_screens_and_all_tiers_render (test_app.Interface.test_screens_and_all_tiers_render) ... ok
+test_camera_overview_and_edges_keep_player_visible (test_biomes.BiomeTests.test_camera_overview_and_edges_keep_player_visible) ... ok
+test_collision_matches_visible_terrain_and_grass (test_biomes.BiomeTests.test_collision_matches_visible_terrain_and_grass) ... ok
+test_five_distinct_pursuer_sprites (test_biomes.BiomeTests.test_five_distinct_pursuer_sprites) ... ok
+test_five_distinct_tracks_switch_on_entry (test_biomes.BiomeTests.test_five_distinct_tracks_switch_on_entry) ... ok
+test_grass_reduces_detection (test_biomes.BiomeTests.test_grass_reduces_detection) ... ok
+test_comfort_frames_are_static_without_gameplay_movement (test_comfort.ComfortTests.test_comfort_frames_are_static_without_gameplay_movement) ... ok
+test_comfort_setting_persists_and_exit_states_render (test_comfort.ComfortTests.test_comfort_setting_persists_and_exit_states_render) ... ok
+test_old_animation_preference_does_not_override_low_motion_default (test_comfort.ComfortTests.test_old_animation_preference_does_not_override_low_motion_default) ... ok
+test_quiet_zone_holds_camera_and_has_no_independent_drift (test_comfort.ComfortTests.test_quiet_zone_holds_camera_and_has_no_independent_drift) ... ok
+test_statuses_distinguish_actual_chase_stun_and_decoy (test_comfort.ComfortTests.test_statuses_distinguish_actual_chase_stun_and_decoy) ... ok
+test_audio_adapts_and_music_off_silences_layer (test_expedition.ExpeditionInterface.test_audio_adapts_and_music_off_silences_layer) ... ok
+test_challenge_entry_works_and_does_not_toggle_hotkeys (test_expedition.ExpeditionInterface.test_challenge_entry_works_and_does_not_toggle_hotkeys) ... ok
+test_keyboard_players_move_independently (test_expedition.ExpeditionInterface.test_keyboard_players_move_independently) ... ok
+test_new_screens_and_every_biome_coop_render (test_expedition.ExpeditionInterface.test_new_screens_and_every_biome_coop_render) ... ok
+test_particles_disabled_preserves_character_animation (test_expedition.ExpeditionInterface.test_particles_disabled_preserves_character_animation) ... ok
+test_save_menu_continue_restores_position_and_rules (test_expedition.ExpeditionInterface.test_save_menu_continue_restores_position_and_rules) ... ok
+test_saved_campaign_result_can_continue_next_biome (test_expedition.ExpeditionInterface.test_saved_campaign_result_can_continue_next_biome) ... ok
+test_abilities_charge_cooldown_and_wall_boundaries (test_expedition.ExpeditionRules.test_abilities_charge_cooldown_and_wall_boundaries) ... ok
+test_all_rulesets_reachable_and_start_safe (test_expedition.ExpeditionRules.test_all_rulesets_reachable_and_start_safe) ... ok
+test_blocked_dash_preserves_charge_and_winning_dash_is_accounted (test_expedition.ExpeditionRules.test_blocked_dash_preserves_charge_and_winning_dash_is_accounted) ... ok
+test_bridge_closes_only_after_everyone_leaves (test_expedition.ExpeditionRules.test_bridge_closes_only_after_everyone_leaves) ... ok
+test_challenge_replays_objectives_and_keeps_history (test_expedition.ExpeditionRules.test_challenge_replays_objectives_and_keeps_history) ... ok
+test_coop_victory_requires_both_and_records_one_result (test_expedition.ExpeditionRules.test_coop_victory_requires_both_and_records_one_result) ... ok
+test_downed_partner_rescue_and_recovery (test_expedition.ExpeditionRules.test_downed_partner_rescue_and_recovery) ... ok
+test_ledge_is_one_way_and_partner_collects_on_landing (test_expedition.ExpeditionRules.test_ledge_is_one_way_and_partner_collects_on_landing) ... ok
+test_partner_ability_does_not_teleport_primary (test_expedition.ExpeditionRules.test_partner_ability_does_not_teleport_primary) ... ok
+test_rescue_rewards_and_records_are_separated (test_expedition.ExpeditionRules.test_rescue_rewards_and_records_are_separated) ... ok
+test_save_restores_random_state_and_future_chase (test_expedition.ExpeditionRules.test_save_restores_random_state_and_future_chase) ... ok
+test_swoop_warns_then_follows_legal_committed_path (test_expedition.ExpeditionRules.test_swoop_warns_then_follows_legal_committed_path) ... ok
+test_tutorial_teaches_actions_without_health_loss (test_expedition.ExpeditionRules.test_tutorial_teaches_actions_without_health_loss) ... ok
+test_exact_save_of_biome_timers_and_future_changes (test_living_biomes.BiomeMechanics.test_exact_save_of_biome_timers_and_future_changes) ... ok
+test_fruit_and_bells_lure_nearby_birds_and_cool_down (test_living_biomes.BiomeMechanics.test_fruit_and_bells_lure_nearby_birds_and_cool_down) ... ok
+test_generation_keeps_objectives_reachable_across_terrain_cycles (test_living_biomes.BiomeMechanics.test_generation_keeps_objectives_reachable_across_terrain_cycles) ... ok
+test_legacy_codes_and_saves_keep_old_rules (test_living_biomes.BiomeMechanics.test_legacy_codes_and_saves_keep_old_rules) ... ok
+test_ruin_gate_swap_preserves_occupants_and_base_routes (test_living_biomes.BiomeMechanics.test_ruin_gate_swap_preserves_occupants_and_base_routes) ... ok
+test_swoop_budget_recovery_and_respawn_reset (test_living_biomes.BiomeMechanics.test_swoop_budget_recovery_and_respawn_reset) ... ok
+test_tide_warns_waits_for_occupants_and_reopens (test_living_biomes.BiomeMechanics.test_tide_warns_waits_for_occupants_and_reopens) ... ok
+test_wind_ride_has_cooldown_collects_and_handles_partner (test_living_biomes.BiomeMechanics.test_wind_ride_has_cooldown_collects_and_handles_partner) ... ok
+test_binding_capture_and_back_navigation (test_living_biomes.InputFlow.test_binding_capture_and_back_navigation) ... ok
+test_gamepad_ability_interaction_menu_and_disconnect (test_living_biomes.InputFlow.test_gamepad_ability_interaction_menu_and_disconnect) ... ok
+test_keyboard_remap_persists_and_old_key_stops_moving (test_living_biomes.InputFlow.test_keyboard_remap_persists_and_old_key_stops_moving) ... ok
+test_new_screens_render_and_comfort_is_still_stationary (test_living_biomes.InputFlow.test_new_screens_render_and_comfort_is_still_stationary) ... ok
+test_pad_button_rebind_validation_and_persistence (test_living_biomes.InputFlow.test_pad_button_rebind_validation_and_persistence) ... ok
+test_stick_deadzone_cardinal_direction_and_pad_assignment (test_living_biomes.InputFlow.test_stick_deadzone_cardinal_direction_and_pad_assignment) ... ok
+test_100_maps_connected_objectives_reachable_and_safe_spawn (test_model.Rules.test_100_maps_connected_objectives_reachable_and_safe_spawn) ... ok
+test_all_five_objective_routes_complete (test_model.Rules.test_all_five_objective_routes_complete) ... ok
+test_collision_respawn_and_game_over_saved_once (test_model.Rules.test_collision_respawn_and_game_over_saved_once) ... ok
+test_enemies_move_legally_over_30_seconds_each_tier (test_model.Rules.test_enemies_move_legally_over_30_seconds_each_tier) ... ok
+test_invulnerability_and_stunned_birds_do_not_damage (test_model.Rules.test_invulnerability_and_stunned_birds_do_not_damage) ... ok
+test_leaf_slip_safe_landing_cooldown_and_exhaustion (test_model.Rules.test_leaf_slip_safe_landing_cooldown_and_exhaustion) ... ok
+test_locked_gate_and_berry (test_model.Rules.test_locked_gate_and_berry) ... ok
+test_settings_and_abandon_persist (test_model.Rules.test_settings_and_abandon_persist) ... ok
+test_symmetry_and_persistent_repeat_rejection (test_model.Rules.test_symmetry_and_persistent_repeat_rejection) ... ok
+test_tracker_ambusher_and_decoy_targets (test_model.Rules.test_tracker_ambusher_and_decoy_targets) ... ok
+test_wall_collision_and_step_count (test_model.Rules.test_wall_collision_and_step_count) ... ok
+test_every_stage_starts_full_map (test_skyward.SkywardTests.test_every_stage_starts_full_map) ... ok
+test_flight_animation_does_not_change_path_positions (test_skyward.SkywardTests.test_flight_animation_does_not_change_path_positions) ... ok
+test_rebalanced_difficulty_all_five_stages (test_skyward.SkywardTests.test_rebalanced_difficulty_all_five_stages) ... ok
+test_pickups_have_distinct_silhouettes_and_colours (test_sunseed.SunseedTests.test_pickups_have_distinct_silhouettes_and_colours) ... ok
+test_shrine_opens_gradually_and_pauses (test_sunseed.SunseedTests.test_shrine_opens_gradually_and_pauses) ... ok
+
+----------------------------------------------------------------------
+Ran 64 tests in 7.714s
+
+OK
+
+PyInstaller 6.16.0 built a Linux application successfully.
+Frozen app --preview build-preview --verify-build passed; all five biomes and new menus rendered.
+Audio and controller imports checked inside the bundle.
+Input tests use simulated devices. No physical gamepad was connected.
+Windows executable build / Windows playtesting have NOT been run.
+Visual review: controls menu, wetland tide, ruin gate map, stationary full-map layout.

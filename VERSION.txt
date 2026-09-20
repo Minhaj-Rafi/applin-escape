@@ -1,2 +1,2 @@
-2.4 - Sunseed Edition
-Distinct seed and berry silhouettes, stronger pursuit on all tiers, pickup effects and animated shrine doors.
+3.1 - Living Biomes
+Five biome mechanics, fairer swoops, keyboard remapping and SDL gamepad support. Legacy AE3 challenges and saves retained.

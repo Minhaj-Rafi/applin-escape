@@ -63,15 +63,22 @@ class Audio:
         self.music, self.effects = music, effects
         self.sounds = {}
         self.current_biome = None
+        self.danger = False
+        self.danger_channel = None
+        self.danger_layers = {}
         try:
             if not pygame.mixer.get_init():
                 pygame.mixer.init(RATE, -16, 1, 512)
             for path in ASSETS.glob('*.wav'):
-                if path.stem != 'orchard_loop' and not path.stem.startswith('biome_'):
+                if path.stem.startswith('pursuit_'):
+                    self.danger_layers[int(path.stem.split('_')[1])-1] = pygame.mixer.Sound(str(path))
+                elif path.stem != 'orchard_loop' and not path.stem.startswith('biome_'):
                     self.sounds[path.stem] = pygame.mixer.Sound(str(path))
             pygame.mixer.music.load(str(ASSETS / 'orchard_loop.wav'))
             pygame.mixer.music.set_volume(.4)
             pygame.mixer.music.play(-1)
+            pygame.mixer.set_reserved(1)
+            self.danger_channel = pygame.mixer.Channel(0)
             self.available = True
             self.apply()
         except (pygame.error, FileNotFoundError):
@@ -80,6 +87,7 @@ class Audio:
     def set_biome(self, tier):
         if not self.available or tier == self.current_biome:
             return
+        self.set_danger(False)
         filename = 'orchard_loop.wav' if tier is None else f'biome_{tier+1}.wav'
         try:
             pygame.mixer.music.load(str(ASSETS / filename))
@@ -92,10 +100,22 @@ class Audio:
     def apply(self):
         if self.available:
             pygame.mixer.music.set_volume(.4 if self.music else 0)
+            if self.danger_channel: self.danger_channel.set_volume(.28 if self.music and self.danger else 0)
+
+    def set_danger(self, active):
+        active = bool(active and self.current_biome is not None)
+        if not self.available or active == self.danger: return
+        self.danger = active
+        if active and self.current_biome in self.danger_layers:
+            self.danger_channel.play(self.danger_layers[self.current_biome], loops=-1, fade_ms=600)
+        elif self.danger_channel:
+            self.danger_channel.fadeout(600)
+        self.apply()
 
     def play(self, event):
         if self.available and self.effects and event in self.sounds:
-            self.sounds[event].play()
+            channel = self.sounds[event].play()
+            if channel: channel.set_volume(.55 if event == 'warning' else .8)
 
 
 if __name__ == '__main__':
