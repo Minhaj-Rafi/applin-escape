@@ -1,78 +1,95 @@
-"""Biome markers and prompts rendered in the existing calm full-map view."""
+"""High-visibility biome landmarks and their illustrated field guide."""
 import math
 import pygame
-from art import leaf
+from biome_art import landmark, feather, IVORY, INK, TEAL
 from biome_rules import BIOME_RULES
+
+KINDS=('fruit','tide','bell','wheel','wind')
+LABELS=('Fruit lure','Tidal stones','Shrine bell','Turning wheel','Wind ride')
+DETAILS=(
+    ('Red hanging fruit on an ivory-marked branch.', 'Interact beside it. Falling fruit draws nearby birds for five seconds.'),
+    ('Ivory stepping stones between two coral-tipped posts.', 'Amber means closing soon. Blue waves and a crossbar mean flooded.'),
+    ('A broad golden bell under an indigo roof.', 'Interact beside it to lure nearby birds for six seconds.'),
+    ('A violet six-spoke wheel with a bright brass hub.', 'Interact beside it. Gate I and Gate II swap after the amber preview.'),
+    ('A striped windsock and bright feather-shaped lane marks.', 'Interact on a feather for a wind ride; dash along the wind to go farther.'),
+)
 
 
 class BiomeUI:
     def interaction_hint(self):
-        g=self.game
-        key=self.controls.key_name(0,5)
+        g=self.game; key=self.controls.key_name(0,5)
         return f'{key}: interact / ledge   |   '+(BIOME_RULES[g.tier][1] if g.rules_version>=31 else 'Legacy challenge: original v3.0 terrain rules.')
+
+    def draw_biome_badge(self):
+        g=self.game
+        if g.rules_version<31:
+            self.text('Legacy v3.0 terrain rules',(674,106),12,IVORY); return
+        self.canvas.blit(landmark(KINDS[g.tier],42),(615,91))
+        self.text(LABELS[g.tier],(667,94),16,IVORY,bold=True)
+        self.text(g.biome_prompt(),(667,116),11,(229,201,149))
 
     def draw_biome_features(self):
         g=self.game
         if g.rules_version<31: return
-        d=pygame.draw; size=self.cell
+        d=pygame.draw; size=self.cell; marker_size=max(32,int(size*1.12))
         animated=self.characters and not self.comfort
+        nearby=[]
         for pos in g.interactables:
-            x,y=self.center(pos); r=max(7,size//3)
-            if g.tier==0:
-                d.ellipse(self.canvas,(44,70,45),(x-r,y+r//2,r*2,r//2+2))
-                d.line(self.canvas,(137,92,57),(x,y+r),(x,y-r//2),max(2,size//12))
-                for dx,dy in ((-r//2,0),(r//2,0),(0,-r//2)):
-                    d.circle(self.canvas,(88,150,71),(x+dx,y+dy),r//2+2)
-                offset=int((1-g.lure_pending/.8)*r) if g.lure_pos==pos and g.lure_pending>0 and animated else 0
-                d.circle(self.canvas,(244,121,70),(x+2,y-2+offset),max(3,r//3))
-                leaf(self.canvas,(x+3,y-6+offset),3,(225,224,135),-.5)
-            else:
-                for dx in (-r,r): d.line(self.canvas,(114,82,66),(x+dx,y+r),(x+dx,y-r),max(2,size//12))
-                d.line(self.canvas,(183,141,98),(x-r-2,y-r),(x+r+2,y-r),3)
-                swing=int(math.sin(g.elapsed*8)*2) if animated and g.lure_pos==pos and g.lure_time>0 else 0
-                d.arc(self.canvas,(246,207,101),(x-r//2+swing,y-r//2,r,r),0,math.pi,3)
-                d.line(self.canvas,(246,207,101),(x-r//2+swing,y+r//2),(x+r//2+swing,y+r//2),3)
-                d.circle(self.canvas,(178,120,67),(x+swing,y+r//2+2),2)
+            x,y=self.center(pos)
+            kind='fruit' if g.tier==0 else 'bell'
+            phase=g.elapsed*6 if animated and g.lure_pos==pos and g.lure_time>0 else 0
+            self.canvas.blit(landmark(kind,marker_size,phase=phase),(x-marker_size//2,y-marker_size//2))
             cooldown=g.terrain_cooldowns.get(f'{pos[0]},{pos[1]}',0)
             if cooldown>0:
-                d.line(self.canvas,(74,87,72),(x-r,y+r+3),(x+r,y+r+3),2)
-                d.line(self.canvas,(234,198,112),(x-r,y+r+3),(x-r+int(2*r*(1-cooldown/14)),y+r+3),2)
+                r=marker_size//3
+                d.line(self.canvas,INK,(x-r,y+marker_size//2),(x+r,y+marker_size//2),3)
+                d.line(self.canvas,(255,211,120),(x-r,y+marker_size//2),(x-r+int(2*r*(1-cooldown/14)),y+marker_size//2),2)
+            nearby.append(pos)
         if g.lure_time>0 and g.lure_pos:
             x,y=self.center(g.lure_pos)
-            # Fixed arcs communicate sound without camera motion or screen flashes.
-            for r in (size//2,size//2+4): d.arc(self.canvas,(244,210,134),(x-r,y-r,r*2,r*2),-.6,.6,1)
+            for r in (marker_size//2,marker_size//2+4): d.arc(self.canvas,(255,232,168),(x-r,y-r,r*2,r*2),-.6,.6,2)
         if g.tier==1 and g.bridge:
-            x,y=self.center(g.bridge[0]); r=size//2-1
-            d.rect(self.canvas,(48,109,135),(x-r,y-r,r*2,r*2))
-            if g.bridge_open:
-                color=(243,192,104) if g.tide_label!='OPEN' else (212,231,210)
-                for dx,dy in ((-r//2,2),(0,-2),(r//2,2)):
-                    d.ellipse(self.canvas,(44,80,91),(x+dx-4,y+dy-1,9,7))
-                    d.ellipse(self.canvas,color,(x+dx-4,y+dy-3,9,6))
-            else:
-                for dy in (-4,3): d.line(self.canvas,(113,181,205),(x-r+3,y+dy),(x+r-3,y+dy),1)
+            pos=g.bridge[0]; x,y=self.center(pos)
+            state='closed' if not g.bridge_open else 'ready' if g.tide_label=='OPEN' else 'warning'
+            self.canvas.blit(landmark('tide',marker_size,state),(x-marker_size//2,y-marker_size//2))
         if g.tier==3 and g.ruin_gates:
             x,y=self.center(g.switch)
-            d.circle(self.canvas,(213,177,111),(x,y),max(7,size//3),2)
-            for i in range(4):
-                angle=i*math.pi/2+(g.elapsed*.8 if animated and g.ruin_request else 0)
-                d.line(self.canvas,(225,187,120),(x,y),(x+int(math.cos(angle)*size*.28),y+int(math.sin(angle)*size*.28)),2)
+            phase=g.elapsed if animated and g.ruin_request else 0
+            self.canvas.blit(landmark('wheel',marker_size,phase=phase),(x-marker_size//2,y-marker_size//2))
+            nearby.append(g.switch)
             for index,pos in enumerate(g.ruin_gates):
-                x,y=self.center(pos); r=size//2-2
-                opened=index==g.ruin_turn
-                color=((238,185,96) if opened else (109,218,197)) if g.ruin_request else (109,218,197) if opened else (153,124,107)
-                for dx in (-r,r): d.rect(self.canvas,(180,152,129),(x+dx-2,y-r,4,2*r))
+                x,y=self.center(pos); r=max(10,size//2-2); opened=index==g.ruin_turn
+                color=((255,184,85) if opened else TEAL) if g.ruin_request else TEAL if opened else (209,150,173)
+                for dx in (-r,r):
+                    d.rect(self.canvas,INK,(x+dx-3,y-r,6,2*r))
+                    d.rect(self.canvas,IVORY,(x+dx-2,y-r,3,2*r))
+                    d.polygon(self.canvas,(151,92,191),[(x+dx-5,y-r),(x+dx,y-r-6),(x+dx+5,y-r)])
                 if not opened:
-                    for dy in (-r//2,r//2): d.line(self.canvas,color,(x-r,y+dy),(x+r,y+dy),3)
-                else:
-                    d.line(self.canvas,color,(x-r+3,y+r-2),(x+r-3,y+r-2),2)
-                self.text('I' if index==0 else 'II',(x,y-r-5),10,color,center=True)
+                    for dy in (-r//2,r//2): d.line(self.canvas,color,(x-r,y+dy),(x+r,y+dy),4)
+                else: d.line(self.canvas,color,(x-r+3,y+r-2),(x+r-3,y+r-2),3)
+                self.text('I' if index==0 else 'II',(x,y-r-6),11,IVORY,center=True,bold=True)
         if g.tier==4:
             for lane in g.wind_lanes:
-                dx,dy=lane['direction']
-                for pos in lane['cells']:
-                    x,y=self.center(pos)
-                    color=(208,234,241)
-                    for offset in (-3,3):
-                        cx,cy=x-dx*offset,y-dy*offset
-                        d.lines(self.canvas,color,False,[(cx-dx*3-dy*3,cy-dy*3+dx*3),(cx+dx*2,cy+dy*2),(cx-dx*3+dy*3,cy-dy*3-dx*3)],2)
+                for pos in lane['cells']: feather(self.canvas,self.center(pos),size,lane['direction'])
+                x,y=self.center(lane['cells'][0])
+                self.canvas.blit(landmark('wind',max(29,size),direction=lane['direction']),(x-size//2,y-size//2))
+            nearby=[p for lane in g.wind_lanes for p in lane['cells']]
+        for player,pos in enumerate((g.player,g.partner['pos']) if g.coop else (g.player,)):
+            options=[p for p in nearby if abs(p[0]-pos[0])+abs(p[1]-pos[1]) <= (0 if g.tier==4 else 1)]
+            if options:
+                target=min(options,key=lambda p:abs(p[0]-pos[0])+abs(p[1]-pos[1])); x,y=self.center(target)
+                key=self.controls.key_name(player,5)
+                # Small, steady input hint; the objects themselves have no badge outline.
+                rect=self.text(key,(x,y-marker_size//2-10),11,IVORY,center=True,bold=True)
+
+    def draw_biome_guide(self):
+        self.header('Know it at a glance.', 'The same shapes appear here, on the map and beside the biome name. Colour is only one cue.')
+        for i,(name,(look,use)) in enumerate(zip(LABELS,DETAILS)):
+            y=144+i*113
+            self.panel((43,y,1190,103))
+            self.canvas.blit(landmark(KINDS[i],84),(61,y+8))
+            self.text(name,(170,y+10),24,IVORY,bold=True)
+            self.text(look,(170,y+45),16,(184,210,200))
+            self.text(use,(170,y+72),15,(233,207,153))
+        self.button('Back',(48,766,170,44),'back')
+        self.text('Interact defaults: E / Right Ctrl. Remap through Settings > Controls.',(268,780),16,IVORY)

@@ -59,11 +59,11 @@ class ExpeditionUI:
         if self.game and (self.game.state == 'playing' or
                           self.game.state == 'cleared' and self.game.mode == 'campaign' and self.game.tier < 4):
             self.store.set('active_expedition', {'game': self.game.snapshot(),
-                                                'campaign': self.campaign_results})
+                                                'campaign': self.campaign_results,'story':self.story_mode})
 
     def extra_action(self, action):
         if action == 'back': self.binding=None
-        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls'):
+        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story'):
             self.screen, self.return_screen = self.navigation.pop()
         elif action in ('adventure', 'journal', 'challenge'):
             self.navigation.append((self.screen, self.return_screen))
@@ -144,7 +144,7 @@ class ExpeditionUI:
             ('Challenge', self.skill, 'Relaxed: more help. Standard: tactical pursuit. Expert: faster birds.', 'skill'),
             ('Escape ability', self.ability, ABILITY_HELP[ABILITIES.index(self.ability)], 'ability'),
             ('Players', 'Two players' if self.coop else 'Solo', 'Co-op shares seeds, score and escape charges. Both apples must reach the shrine.', 'coop'),
-            ('Apple style', self.cosmetic, 'Golden: first win. Moonleaf: no-hit win. Blossom: rescue both friends and win.', 'cosmetic'),
+            ('Apple style', self.cosmetic, 'Earned styles only. Rare green shiny colour is random and lasts for one run.', 'cosmetic'),
         ]
         for i,(label,value,caption,action) in enumerate(rows):
             y=149+i*96
@@ -241,7 +241,7 @@ class ExpeditionUI:
         self.text(f'{self.journal_page+1} / 3',(640,782),16,MUTED,center=True)
 
     def hero_sprite(self, size, frame, direction, partner=False):
-        style = 'Moonleaf' if partner else self.cosmetic
+        style = 'Shiny' if self.game and self.game.shiny[int(partner)] else 'Moonleaf' if partner else self.cosmetic
         gaze=(0,0); blink=False
         if self.game and self.characters and not self.comfort:
             pos=self.game.partner['pos'] if partner else self.game.player
@@ -255,7 +255,7 @@ class ExpeditionUI:
         sprite=applin(size,frame,direction[0] or 1,gaze,blink)
         # Apply an apple-body palette without recoloring eyes, leaves or transparent pixels.
         if style != 'Orchard':
-            colors={'Golden':(239,192,64),'Moonleaf':(113,172,227),'Blossom':(230,139,182)}
+            colors={'Shiny':(155,211,72),'Golden':(239,192,64),'Moonleaf':(113,172,227),'Blossom':(230,139,182)}
             target=colors[style]
             pixels=pygame.PixelArray(sprite)
             for x in range(size):

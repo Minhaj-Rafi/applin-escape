@@ -1,2 +1,2 @@
-3.1 - Living Biomes
-Five biome mechanics, fairer swoops, keyboard remapping and SDL gamepad support. Legacy AE3 challenges and saves retained.
+4.0 - Homeward
+Distinct biome landmarks, illustrated guide, five-chapter story, walkable home sanctuary and rare run-only shiny Applin.

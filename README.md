@@ -1,8 +1,8 @@
-# Applin Escape — Living Biomes (v3.1)
+# Applin Escape — Homeward (v4.0)
 
 An offline 2D maze adventure built with Python and Pygame. Lead Applin through five outdoor biomes, collect sun seeds, rescue optional Budew, outwit flying pursuers and reach the animated sanctuary. Play alone or with a second player on the same keyboard.
 
-This upgrade builds on v3.0 and preserves its v2.4 foundation. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
+This upgrade builds on v3.1 and preserves the existing gameplay and local history. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
 
 ![Wetland co-op](previews/tier_2.png)
 
@@ -11,7 +11,7 @@ This upgrade builds on v3.0 and preserves its v2.4 foundation. Full-map view rem
 1. Extract **the entire ZIP** into a new folder.
 2. Open its `applin_escape` folder.
 3. Double-click **PLAY_WINDOWS.bat**.
-4. Select **Tutorial**, or **Adventure setup** to choose your ability, rules and player count.
+4. Select **Tutorial**, **Story expedition**, or **Adventure setup** to choose your ability, rules and player count. Open **Home sanctuary** to visit your garden.
 
 Python 3.10 or newer is needed for the source package. The launcher creates a private environment and installs Pygame on first use; internet is needed for that setup only. The actual game is offline.
 
@@ -24,6 +24,64 @@ py launch.py
 ```
 
 No need to delete the older version. The game keeps its existing local map history and previous results. New achievements are earned in v3.0; they are not inferred from old runs.
+
+## Homeward update (v4.0)
+
+### Clear biome landmarks
+
+All five mechanics now use larger landmarks with distinct silhouettes and consistent iconography. They remain recognizable on the full map, with a minimum landmark size and contrasting highlights, shadows and physical supports. Seeds and berries render above nearby landmark details, so these additions do not hide collectibles.
+
+| Mechanic | What to look for |
+|---|---|
+| Fruit lure | Three large red fruits hanging from a branch with an ivory-marked post |
+| Tidal crossing | Broad ivory stones between coral-tipped posts; amber before closing; blue waves and a crossbar when flooded |
+| Shrine bell | A filled golden bell with a wide lip beneath an indigo roof |
+| Turning gates | A violet six-spoke wheel; ivory gate pillars marked I and II |
+| Wind ride | A striped teal-and-orange windsock, plus bright feather-shaped marks showing direction |
+
+Click the biome icon beside the map title, or open **How to play → Illustrated biome guide**, for the five illustrated explanations. A nearby keyboard hint shows the Interact binding. The objects do not require colour alone to distinguish them.
+
+Gameplay integration checks exercise real input dispatch and the app update loop: fruit/bell activation redirects birds; the wheel swaps collision routes and refreshes scenery; the tide waits for a player occupying the crossing; wind activation moves three cells without consuming escape charges. These checks are included alongside the original rule and save tests.
+
+### Rare shiny Applin, for one run only
+
+Each active Applin has an independent **1 in 256** chance of starting a fresh run with a green shiny apple body. In co-op, neither, one, or both can be shiny. This demo's chosen probability is independent of official games' encounter rates.
+
+- The roll uses system randomness, separately from the maze generator.
+- Shiny is **not** an Apple style, unlock, purchase, setting or earned reward.
+- It temporarily overrides the chosen body colour, with a small steady star and a HUD label. It gives no gameplay advantage.
+- Normal campaign chapter changes preserve the roll across the expedition. Saving and continuing also preserve it.
+- A retry or newly started adventure makes fresh rolls. The previous shiny colour does not carry into that new attempt.
+- Challenge codes reproduce the maze and rules, **not** the shiny roll. Sharing or replaying a shiny run's code does not guarantee a shiny character.
+- Older saves without shiny information resume with normal colours; loading them does not add a roll.
+- The home garden and main menu show ordinary Applin. A rare appearance is never added to the permanent style list.
+
+The preview named `shiny_example.png` is an illustration produced with a controlled test fixture. There is no corresponding player-facing force-shiny control.
+
+### Five-chapter story expedition
+
+**Story expedition** introduces an original story about recovering the sanctuary's scattered sun seeds and bringing its missing Budew home. Each chapter leads into one existing biome, with a short illustrated introduction and a concrete garden-restoration goal. Text waits for your input; there are no forced timed cutscenes.
+
+1. The scattered light — Bramblebrook Orchard.
+2. Across the returning tide — Tideglass Wetlands.
+3. A bell beneath the leaves — Bellfern Shrine.
+4. The turning stone — Copperleaf Ruins.
+5. A home under the stars — Starfall Highlands.
+
+Solo or co-op, the selected difficulty and ability, comfort controls, save/continue and the existing five-stage progression all remain available. **Adventure setup → Five-stage expedition** keeps the original expedition flow without the story passages.
+
+### A walkable home sanctuary
+
+Use movement controls to walk through the stationary garden. Interact beside a resident to hear a short line, or inspect/click a garden plot to see its restoration goal. The sanctuary is peaceful and does not advance an active maze's timer.
+
+Clearing a non-tutorial biome restores its garden area. Budew rescued during a successful stage arrive at home. All new rescued Budew are counted; up to ten are drawn together to keep the garden readable. The same completed stage cannot be credited twice by loading its saved state.
+
+- **Natural** decoration is available initially.
+- Restore one garden to unlock **Lanterns**.
+- Bring three Budew home to unlock **Flowers**.
+- Restore all five gardens to unlock the **Fountain**.
+
+Previously recorded biome victories restore their matching gardens during migration. Old versions did not store exact rescue totals, so historical rescue counts are not invented. New story chapter completions are tracked from v4.0 onward. No sanctuary decoration changes shiny odds or character abilities.
 
 ## Living Biomes update (v3.1)
 
@@ -51,7 +109,7 @@ Unsupported/unmapped joysticks are not treated as if they had a known layout. In
 
 ### Existing saves and challenge codes
 
-New games use **AE31** codes. **AE3** codes continue to generate v3.0 challenges with their original terrain and pursuit timings. An existing v3.0 active save resumes under its legacy rules; newly generated stages use v3.1. Existing map history, records, achievements and settings remain. New personal bests are separated by rules version as well as the existing mode settings.
+The v4.0 gameplay generator still uses **AE31** codes; v4.0 adds presentation, story and run cosmetics without changing those map rules. **AE3** codes continue to generate v3.0 challenges with their original terrain and pursuit timings. An existing v3.0 active save resumes under its legacy rules; newly generated stages use v3.1. Existing map history, records, achievements and settings remain. New personal bests are separated by rules version as well as the existing mode settings.
 
 ## New adventures
 
@@ -104,7 +162,7 @@ P2 uses a blue palette and numbered marker to remain distinguishable. Styles hav
 
 ## Shareable challenges and map history
 
-Use **Share challenge** on the pause or result screen. The full `AE31-...` code (or `AE3-...` for a legacy game) is shown, copied to the clipboard when supported, and written to `challenge_code.txt` in the save folder. A friend enters it through **Adventure setup → Challenge code**. The code fixes the biome, random seed, challenge setting, ability and player count. It restarts the adventure from the beginning rather than copying your current progress.
+Use **Share challenge** on the pause or result screen. The full `AE31-...` code (or `AE3-...` for a legacy game) is shown, copied to the clipboard when supported, and written to `challenge_code.txt` in the save folder. A friend enters it through **Adventure setup → Challenge code**. The code fixes the biome, random seed, challenge setting, ability and player count. Shiny rolls remain independent. It restarts the adventure from the beginning rather than copying your current progress.
 
 Normal adventures reject previously generated base maze layouts, including their rotations and reflections, using persistent local history. Clearing or moving that history resets the guarantee; separate computers have separate histories. Challenge mode deliberately permits repeat maps and does not consume a normal-history entry. Codes are versioned: AE31 for v3.1 and AE3 for legacy v3.0 rules. Matching codes guarantee matching initial maps and objectives, not matching outcomes after different inputs.
 
@@ -151,8 +209,8 @@ python -m unittest discover -s tests -v
 python main.py --preview previews --verify-build
 ```
 
-For a machine without a display/audio device, set `SDL_VIDEODRIVER=dummy` and `SDL_AUDIODRIVER=dummy` before running tests. The suite also covers timed tides, occupied ruin gates, lures, wind rides, legacy migration, input remapping, controller actions and disconnects, in addition to the v3.0 map, save, co-op, audio and rendering checks. Human playtesting is still needed for difficulty and keyboard feel.
+For a machine without a display/audio device, set `SDL_VIDEODRIVER=dummy` and `SDL_AUDIODRIVER=dummy` before running tests. The suite also covers independent shiny rolls, save continuity, all five story chapters, home progression, landmark contrast, input-driven biome interactions, timed tides, occupied ruin gates, legacy migration, input remapping, controller actions and disconnects. Human playtesting is still needed for difficulty and keyboard feel.
 
 Audio is already included. Rebuild original base effects with `python audio.py`, biome music with `python compose.py`, and the new warning/rescue/pursuit sounds with `python compose_expansion.py`.
 
-Source layout: `model.py` contains the original rules and persistence; `expedition.py` extends them; `biome_rules.py` and `biome_ui.py` add v3.1 terrain; `controls.py` handles keyboard/gamepad input; `main.py` runs the app; `adventure_ui.py` contains the new screens and illustrations; `art.py` and `world.py` draw the sprites and scenery. `launch.py` is the desktop launcher.
+Source layout: `home_progress.py` contains rare-roll and restoration rules; `sanctuary.py` draws the home and story; `biome_art.py` draws the new landmarks. `model.py` contains the original rules and persistence; `expedition.py` extends them; `biome_rules.py` and `biome_ui.py` add v3.1 terrain; `controls.py` handles keyboard/gamepad input; `main.py` runs the app; `adventure_ui.py` contains the new screens and illustrations; `art.py` and `world.py` draw the sprites and scenery. `launch.py` is the desktop launcher.

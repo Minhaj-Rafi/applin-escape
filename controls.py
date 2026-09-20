@@ -190,6 +190,9 @@ class ControlUI:
                 return True
             if event.type in (pygame.KEYDOWN,pygame.CONTROLLERBUTTONDOWN): return True
         if event.type!=pygame.CONTROLLERBUTTONDOWN: return False
+        if self.screen=='sanctuary' and event.button==self.controls.pad_buttons[1]:
+            self.home_interact()
+            return True
         if self.screen=='play':
             player=self.controls.player_for(event.instance_id,self.game.coop)
             if player is None: return True
@@ -205,7 +208,7 @@ class ControlUI:
         elif event.button==pygame.CONTROLLER_BUTTON_START and self.screen=='paused': self.action('resume')
         elif event.button==pygame.CONTROLLER_BUTTON_B:
             if self.screen=='paused': self.action('resume')
-            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge'): self.action('back')
+            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge','sanctuary','story','biome_guide'): self.action('back')
         elif event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT,
                                pygame.CONTROLLER_BUTTON_DPAD_UP,pygame.CONTROLLER_BUTTON_DPAD_LEFT):
             step=1 if event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else -1

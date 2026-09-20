@@ -19,6 +19,7 @@ from expedition import Session
 from adventure_ui import ExpeditionUI
 from controls import ControlUI
 from biome_ui import BiomeUI
+from sanctuary import SanctuaryUI
 from art import Sprites, seed, berry, heart, leaf
 from audio import Audio
 from world import World, TILE
@@ -35,18 +36,19 @@ GOLD = (247, 203, 118)
 RED = (239, 143, 133)
 
 
-class App(ControlUI, BiomeUI, ExpeditionUI):
+class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
     def __init__(self, save_dir=None):
         pygame.mixer.pre_init(22050, -16, 1, 512)
         pygame.init()
         info = pygame.display.Info()
         self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
         self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
-        pygame.display.set_caption('Applin Escape | Living Biomes 3.1')
+        pygame.display.set_caption('Applin Escape | Homeward 4.0')
         self.canvas = pygame.Surface((W, H))
         self.store = Store(save_dir)
         self.init_adventure()
         self.init_controls()
+        self.init_sanctuary()
         self.audio = Audio(self.store.get('music', True), self.store.get('effects', True))
         self.comfort = self.store.get('stationary_v22', False)
         self.motion = False if self.comfort else self.store.get('decoration_v22', False)
@@ -112,17 +114,23 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
         self.text(label, rect.center, 16 if small else 19, BG if primary else TEXT, bold=primary, center=True)
         self.buttons.append((rect, action))
 
-    def start(self, tier=0, mode='practice'):
+    def start(self, tier=0, mode='practice', shiny_state=None):
         try:
             if self.resume_data:
                 data, self.resume_data = self.resume_data, None
                 self.game = Session.restore(self.store, data['game'])
                 self.campaign_results = data.get('campaign', [])
+                self.story_mode = data.get('story',False)
             else:
                 if self.game and self.game.state == 'playing': self.game.abandon()
                 self.game = Session(self.store, tier, mode, skill=self.skill, ability=self.ability,
-                                    coop=self.coop and mode != 'tutorial', code=self.pending_code)
+                                    coop=self.coop and mode != 'tutorial', code=self.pending_code, shiny_state=shiny_state)
                 self.pending_code = None
+                if mode!='campaign': self.story_mode=False
+                self.game.story_run=self.story_mode
+                if any(self.game.shiny):
+                    who='Both players are' if all(self.game.shiny) else 'Player 2 is' if self.game.shiny[1] else 'Applin is'
+                    self.game.notify(who+' shiny! This rare green colour lasts for this run.')
             self.navigation.clear()
             self.render_revision = self.game.board_revision
             self.visual_partner = list(map(float, self.game.partner['pos']))
@@ -196,11 +204,13 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
     def action(self, action):
         self.audio.play('click')
         self.focus = -1
+        if self.sanctuary_action(action): return
         if self.controls_action(action): return
         if self.extra_action(action): return
         if action.startswith('tier:'):
             self.selected = int(action.split(':')[1])
         elif action == 'campaign':
+            self.story_mode=False
             self.campaign_results = []
             self.start(0, 'campaign')
         elif action == 'practice':
@@ -237,7 +247,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
             self.cached_summary = self.store.summary()
         elif action == 'next':
             self.skill, self.ability, self.coop = self.game.skill, self.game.ability, self.game.coop
-            self.start(self.game.tier+1, 'campaign')
+            self.start(self.game.tier+1, 'campaign', shiny_state=self.game.shiny[:])
         elif action == 'retry':
             self.skill, self.ability, self.coop = self.game.skill, self.game.ability, self.game.coop
             if self.game.mode == 'challenge': self.pending_code = self.game.code
@@ -304,16 +314,19 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
                 elif event.key == pygame.K_RETURN:
                     if self.screen != 'play' and 0 <= self.focus < len(self.buttons):
                         self.action(self.buttons[self.focus][1])
-                    elif self.screen == 'menu': self.action('campaign')
+                    elif self.screen == 'menu': self.action('story')
                     elif self.screen == 'paused': self.action('resume')
                     elif self.screen == 'result': self.action(self.result_primary())
                 elif event.key == pygame.K_ESCAPE:
                     if self.screen == 'play': self.action('pause')
                     elif self.screen == 'paused': self.action('resume')
-                    elif self.screen in ('help','settings','records','adventure','journal','controls'):
+                    elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide'):
                         self.action('back')
                 elif self.screen == 'menu' and pygame.K_1 <= event.key <= pygame.K_5:
                     self.selected = event.key-pygame.K_1
+                elif self.screen == 'sanctuary':
+                    command=self.controls.key_command(event.key,False)
+                    if command and command[1]==5: self.home_interact()
                 elif self.screen == 'play':
                     command=self.controls.key_command(event.key,self.game.coop)
                     if command:
@@ -365,6 +378,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
     def update(self, dt):
         self.t += dt
         if self.screen != 'play':
+            if self.screen=='sanctuary': self.update_sanctuary(dt)
             self.audio.set_danger(False)
             return
         g = self.game
@@ -415,7 +429,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
         self.text('A very big escape.', (45, 169), 57, GREEN, serif=True)
         self.text('Save Applin from a flock of roaming bird Pokemon.', (49, 254), 19, MUTED)
         self.text('Read the maze. Outsmart the chase. Find sanctuary.', (49, 285), 19, MUTED)
-        self.button('Begin five-stage expedition', (48, 340, 361, 55), 'campaign', True)
+        self.button('Story expedition', (48,340,361,55), 'story',True)
         self.button('Play selected tier', (425, 340, 233, 55), 'practice')
         self.button('Adventure setup', (48,410,211,42), 'adventure', small=True)
         self.button('Tutorial', (272,410,155,42), 'tutorial', small=True)
@@ -448,8 +462,9 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
             self.button('Selected' if i == self.selected else 'Select tier', (x+16, 652, 192, 43), f'tier:{i}', small=True)
         count, wins, best = self.cached_summary
         self.text(f'{count} unique maps explored     /     {wins} stages cleared     /     best {best:,}', (48, 754), 16, MUTED)
-        self.text('v3.1 Living Biomes / Keyboard and gamepad / Local co-op', (48, 796), 12, MUTED)
-        self.button('Quit', (1120, 763, 112,  40), 'quit', small=True)
+        self.text('v4.0 Homeward / A garden to restore / Rare run-only shiny colours', (48, 796), 12, MUTED)
+        self.button('Home sanctuary',(795,758,302,46),'sanctuary',small=True)
+        self.button('Quit', (1120,763,112,40),'quit',small=True)
 
     def draw_game(self):
         g = self.game
@@ -467,6 +482,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
         scenery_shade = pygame.Surface((880,610),pygame.SRCALPHA)
         scenery_shade.fill((8,18,24, 40))
         self.canvas.blit(scenery_shade,(30,150))
+        self.draw_biome_features()
         if self.trail:
             for pos in g.visited:
                 trail_color={'Golden':(158,139,80),'Moonleaf':(98,145,169),'Blossom':(163,113,145)}.get(self.cosmetic,(78,108,79))
@@ -478,7 +494,6 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
         for cell in g.berries:
             berry(self.canvas, self.center(cell), max(8, self.cell//4), self.t if self.characters and not self.comfort else 0)
         self.draw_world_extras()
-        self.draw_biome_features()
         frame = int(g.elapsed*10) % 8 if self.characters and not self.comfort else 0
         size = int(self.cell*1.48)
         if g.decoy_time > 0:
@@ -500,6 +515,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
             elif e.mood == 'chase':
                 pygame.draw.circle(self.canvas, RED, (x, y-self.cell//2), 2)
         x, y = self.center(self.visual_player)
+        if g.coop and g.partner['pos']==g.player: x-=self.cell//4
         if g.invulnerable > 0:
             pygame.draw.circle(self.canvas, GREEN, (x, y), self.cell//2, 2)
         hero=self.hero_sprite(size,frame,g.direction)
@@ -507,23 +523,26 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
             hero=hero.copy(); hero.set_alpha(125)
         lift=int(math.sin(self.celebrate/.7*math.pi)*3) if self.celebrate>0 and self.characters and not self.comfort else 0
         self.canvas.blit(hero, (x-size//2,y-size//2-lift))
+        if g.shiny[0]: self.draw_shiny_mark(x,y,self.cell)
         if g.coop:
             self.text('1',(x,y-self.cell*.7),11,TEXT,center=True)
             px,py=self.center(self.visual_partner)
             if g.partner['pos']==g.player:
-                px+=self.cell//3
+                px+=self.cell//4
                 py+=self.cell//8
             hero2=self.hero_sprite(size,frame,g.partner['direction'],True)
             if g.partner['down'] or g.partner['camouflage']>0:
                 hero2=hero2.copy(); hero2.set_alpha(115)
             self.canvas.blit(hero2,(px-size//2,py-size//2))
+            if g.shiny[1]: self.draw_shiny_mark(px,py,self.cell)
             self.text('HELP' if g.partner['down'] else '2',(px,py-self.cell*.7),11,GOLD if g.partner['down'] else TEXT,center=True)
         for x, y, vx, vy, life, color in self.particles:
             leaf(self.canvas, (int(x), int(y)), max(1, life*6), color, self.t*3)
         self.draw_exit_marker()
         self.canvas.set_clip(None)
         self.panel((940, 139, 310, 636), radius=16)
-        self.text('KEEP APPLIN SAFE', (960,153),13,MUTED,bold=True)
+        shiny_label='SHINY: P1 + P2' if all(g.shiny) else 'SHINY: P2' if g.shiny[1] else 'SHINY APPLIN' if g.shiny[0] else 'KEEP APPLIN SAFE'
+        self.text(shiny_label,(960,153),13,GOLD if any(g.shiny) else MUTED,bold=True)
         for i in range(tier.hearts):
             heart(self.canvas,974+i*31,185,i<g.health)
         self.text(f'{int(g.elapsed)//60:02d}:{int(g.elapsed)%60:02d}',(960,204),37,TEXT)
@@ -560,7 +579,8 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
         self.text(f'{self.controls.key_name(0,5)}: interact / ledge',(962,711),12,MUTED)
         self.button('Comfort ON / map stays still' if self.comfort else 'V  Full map / quiet camera',
                     (960,737,270,27),'overview',small=True)
-        self.text(g.biome_prompt(),(674,106),11,GOLD)
+        self.draw_biome_badge()
+        self.buttons.append((pygame.Rect(610,91,620,43),'biome_guide'))
         notice = g.notice if g.notice_time > 0 else self.interaction_hint()
         self.text(notice, (30, 793), 16, GREEN if g.notice_time > 0 else MUTED)
 
@@ -632,7 +652,8 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
             self.text(b, (132, y+77), 15, MUTED)
         self.text('Default keys: WASD / arrows move, SPACE escape, E interact. Remap them in Settings > Controls.', (48, 688), 17, TEXT)
         self.text('Gamepad: left stick / D-pad moves, A uses ability, X interacts, Start pauses. V toggles the optional camera.', (48, 723), 15, MUTED)
-        self.button('Back', (48, 766, 170, 44), 'back', True)
+        self.button('Back',(48,766,170,44),'back',True)
+        self.button('Illustrated biome guide',(905,766,327,44),'biome_guide',small=True)
 
     def draw_settings(self):
         self.backdrop()
@@ -685,7 +706,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
 
     def result_primary(self):
         if self.game.state == 'cleared' and self.game.mode == 'campaign':
-            return 'next' if self.game.tier < 4 else 'menu'
+            return 'next' if self.game.tier < 4 else 'sanctuary' if self.story_mode else 'menu'
         return 'retry'
 
     def draw_overlay(self):
@@ -696,7 +717,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
         self.buttons = []
         self.panel((300, 127, 680, 596), (26, 42, 40), 25)
         if self.screen == 'paused':
-            self.canvas.blit(self.sprites.get('applin', 112, 0), (584, 148))
+            self.canvas.blit(self.hero_sprite(112,0,self.game.direction),(584,148))
             self.text('A moment in the shade.', (640, 287), 37, TEXT, serif=True, center=True)
             self.text('Applin is safe. The timer and flock are paused.', (640, 338), 17, MUTED, center=True)
             self.button('Resume adventure', (373, 391, 534, 52), 'resume', True)
@@ -710,7 +731,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
             g = self.game
             won = g.state == 'cleared'
             campaign_done = won and g.mode == 'campaign' and g.tier == 4
-            self.canvas.blit(self.sprites.get('applin' if won else 'cramorant', 98, 0), (591, 143))
+            self.canvas.blit(self.hero_sprite(98,0,g.direction) if won else self.sprites.get('cramorant',98,0),(591,143))
             title = 'Home at last.' if campaign_done else 'Sanctuary reached.' if won else 'The flock found you.'
             self.text(title, (640, 268), 38, GREEN if won else GOLD, serif=True, center=True)
             self.text('Five stages. One brave little apple.' if campaign_done else 'A fresh maze awaits your next attempt.',
@@ -728,7 +749,7 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
                 self.text(f'{g.hits} close calls  /  {g.dew_collected} dew collected  /  {g.health} hearts left',
                           (640, 468), 17, MUTED, center=True)
             action = self.result_primary()
-            label = {'next': 'Continue to next difficulty', 'retry': 'Replay challenge' if g.mode=='challenge' else 'Try a fresh maze', 'menu': 'Return to the orchard'}[action]
+            label = {'next': 'Continue to next difficulty', 'retry': 'Replay challenge' if g.mode=='challenge' else 'Try a fresh maze', 'menu': 'Return to the orchard', 'sanctuary':'Visit your restored home'}[action]
             self.button(label, (373, 519, 534, 53), action, True)
             if action != 'menu':
                 self.button('Return to menu', (373, 589, 534, 47), 'menu')
@@ -750,6 +771,12 @@ class App(ControlUI, BiomeUI, ExpeditionUI):
             self.draw_settings()
         elif self.screen == 'records':
             self.draw_records()
+        elif self.screen == 'sanctuary':
+            self.draw_sanctuary()
+        elif self.screen == 'story':
+            self.draw_story()
+        elif self.screen == 'biome_guide':
+            self.draw_biome_guide()
         elif self.screen == 'controls':
             self.draw_controls()
         elif self.screen == 'adventure':
@@ -812,7 +839,7 @@ def main():
                 app.draw()
                 pygame.image.save(app.canvas, str(folder/f'tier_{tier+1}.png'))
                 app.game.abandon()
-            for screen in ('help','settings','controls','adventure','journal'):
+            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story'):
                 app.screen=screen
                 app.draw()
                 pygame.image.save(app.canvas,str(folder/f'{screen}.png'))

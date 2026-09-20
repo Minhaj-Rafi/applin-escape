@@ -1,4 +1,4 @@
-Applin Escape v3.1 - verification
+Applin Escape v4.0 Homeward - verification
 Python 3.12.14 / Pygame 2.6.1 / Linux, SDL dummy video and audio.
 
 test_audio_assets_and_mixer_load (test_app.Interface.test_audio_assets_and_mixer_load) ... ok
@@ -35,6 +35,20 @@ test_rescue_rewards_and_records_are_separated (test_expedition.ExpeditionRules.t
 test_save_restores_random_state_and_future_chase (test_expedition.ExpeditionRules.test_save_restores_random_state_and_future_chase) ... ok
 test_swoop_warns_then_follows_legal_committed_path (test_expedition.ExpeditionRules.test_swoop_warns_then_follows_legal_committed_path) ... ok
 test_tutorial_teaches_actions_without_health_loss (test_expedition.ExpeditionRules.test_tutorial_teaches_actions_without_health_loss) ... ok
+test_complete_story_carries_shiny_and_restores_home (test_homeward.HomewardFlows.test_complete_story_carries_shiny_and_restores_home) ... ok
+test_fruit_and_bell_controls_really_change_enemy_movement (test_homeward.HomewardFlows.test_fruit_and_bell_controls_really_change_enemy_movement) ... ok
+test_guide_and_home_navigation_and_rendering (test_homeward.HomewardFlows.test_guide_and_home_navigation_and_rendering) ... ok
+test_landmarks_have_distinct_silhouettes_and_survive_every_palette (test_homeward.HomewardFlows.test_landmarks_have_distinct_silhouettes_and_survive_every_palette) ... ok
+test_plain_expedition_and_save_keep_run_colour_retry_rerolls (test_homeward.HomewardFlows.test_plain_expedition_and_save_keep_run_colour_retry_rerolls) ... ok
+test_ruin_wheel_key_swaps_passability_and_refreshes_graphics (test_homeward.HomewardFlows.test_ruin_wheel_key_swaps_passability_and_refreshes_graphics) ... ok
+test_shiny_overrides_styles_and_partner_palette_only_for_run (test_homeward.HomewardFlows.test_shiny_overrides_styles_and_partner_palette_only_for_run) ... ok
+test_story_resume_keeps_story_flow (test_homeward.HomewardFlows.test_story_resume_keeps_story_flow) ... ok
+test_tide_changes_in_app_loop_without_trapping_partner (test_homeward.HomewardFlows.test_tide_changes_in_app_loop_without_trapping_partner) ... ok
+test_wind_key_moves_player_three_cells_and_preserves_charge (test_homeward.HomewardFlows.test_wind_key_moves_player_three_cells_and_preserves_charge) ... ok
+test_challenge_code_cannot_copy_shiny_colour (test_homeward.ShinyRules.test_challenge_code_cannot_copy_shiny_colour) ... ok
+test_independent_rolls_allow_neither_one_or_both (test_homeward.ShinyRules.test_independent_rolls_allow_neither_one_or_both) ... ok
+test_sanctuary_credit_is_idempotent_and_requires_clear (test_homeward.ShinyRules.test_sanctuary_credit_is_idempotent_and_requires_clear) ... ok
+test_save_continue_never_rerolls_and_legacy_is_normal (test_homeward.ShinyRules.test_save_continue_never_rerolls_and_legacy_is_normal) ... ok
 test_exact_save_of_biome_timers_and_future_changes (test_living_biomes.BiomeMechanics.test_exact_save_of_biome_timers_and_future_changes) ... ok
 test_fruit_and_bells_lure_nearby_birds_and_cool_down (test_living_biomes.BiomeMechanics.test_fruit_and_bells_lure_nearby_birds_and_cool_down) ... ok
 test_generation_keeps_objectives_reachable_across_terrain_cycles (test_living_biomes.BiomeMechanics.test_generation_keeps_objectives_reachable_across_terrain_cycles) ... ok
@@ -67,13 +81,26 @@ test_pickups_have_distinct_silhouettes_and_colours (test_sunseed.SunseedTests.te
 test_shrine_opens_gradually_and_pauses (test_sunseed.SunseedTests.test_shrine_opens_gradually_and_pauses) ... ok
 
 ----------------------------------------------------------------------
-Ran 64 tests in 7.714s
+Ran 78 tests in 11.192s
 
 OK
 
-PyInstaller 6.16.0 built a Linux application successfully.
-Frozen app --preview build-preview --verify-build passed; all five biomes and new menus rendered.
-Audio and controller imports checked inside the bundle.
-Input tests use simulated devices. No physical gamepad was connected.
-Windows executable build / Windows playtesting have NOT been run.
-Visual review: controls menu, wetland tide, ruin gate map, stationary full-map layout.
+PyInstaller 6.16.0 built the Linux application successfully.
+Frozen app --preview build-preview-v4 --verify-build exited successfully.
+Bundled audio, five danger tracks, biome effects and controller imports loaded.
+
+Integration checks exercised actual input dispatch and game updates:
+- Fruit lures and bells redirect predator movement.
+- Tide waits for occupants before closing; gates swap walkable routes safely.
+- Wind rides move Applin, collect pickups and preserve escape charges.
+- Independent shiny rolls allow neither, either or both co-op players.
+- Shiny flags survive save/continue and chapter transitions; new runs reroll.
+- Shiny colour is absent from selectable Apple styles.
+- All five story chapters complete and credit sanctuary progress exactly once.
+- Landmark silhouette/contrast checks cover every biome path palette.
+
+Visual review: illustrated guide, story, restored sanctuary, shiny co-op preview,
+and full-map windy biome. Source preview shows a controlled shiny example only.
+Physical controllers and native Windows execution have not been tested here.
+The download includes Python source, assets and Windows launch/build scripts;
+it does not include a Windows executable.

@@ -3,6 +3,8 @@ from dataclasses import replace
 from biome_rules import BiomeRules
 import hashlib
 import random
+import secrets
+from home_progress import roll_shiny, credit_home
 from model import Session as BaseSession, Enemy, TIERS, DIRS, distances, neighbors, path_to
 
 ABILITIES = ('Leaf Slip', 'Quick Dash', 'Decoy Apple', 'Camouflage')
@@ -61,7 +63,7 @@ class ReplayStore:
 
 class Session(BiomeRules, BaseSession):
     def __init__(self, store, tier=0, mode='practice', seed_source=None,
-                 skill='Standard', ability='Leaf Slip', coop=False, code=None):
+                 skill='Standard', ability='Leaf Slip', coop=False, code=None, shiny_state=None):
         replay_seed = None
         if code:
             tier, replay_seed, skill, ability, coop = parse_code(code)
@@ -71,6 +73,10 @@ class Session(BiomeRules, BaseSession):
         self.store = store
         self.skill, self.ability, self.coop = skill, ability, coop
         self.code = challenge_code(tier, self.seed, skill, ability, coop, legacy=bool(code and code.strip().upper().startswith('AE3-')))
+        self.shiny = list(shiny_state) if shiny_state is not None else roll_shiny(coop)
+        if not coop: self.shiny[1]=False
+        self.stage_id=secrets.token_hex(16)
+        self.story_run=False
         self.active_player = 0
         self.camouflage = 0.0
         self.finale = False
@@ -147,6 +153,9 @@ class Session(BiomeRules, BaseSession):
             obj.enemies.append(enemy)
         obj.events = []
         if not hasattr(obj,'rules_version'): obj.init_biome_rules(legacy=True)
+        if not hasattr(obj,'shiny'): obj.shiny=[False,False]
+        if not hasattr(obj,'stage_id'): obj.stage_id=secrets.token_hex(16)
+        if not hasattr(obj,'story_run'): obj.story_run=False
         for enemy in obj.enemies:
             if not hasattr(enemy,'recovery'): enemy.recovery=0.0
         return obj
@@ -158,6 +167,7 @@ class Session(BiomeRules, BaseSession):
         self.mode = f'{original_mode}/{self.skill}/{"duo" if self.coop else "solo"}/{self.ability}'
         super().finish(outcome)
         self.mode = original_mode
+        credit_home(self)
         self.store.set('active_expedition', None)
         if outcome == 'cleared' and original_mode != 'tutorial':
             key = f'{self.tier}/{self.skill}/{self.coop}/{self.ability}/{original_mode}/v{self.rules_version}'
