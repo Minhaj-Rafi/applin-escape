@@ -90,7 +90,17 @@ def landscape(tier,page):
 def draw_scene(surface,rect,tier,page,hero=None,phase=0):
     frame=landscape(tier,page).copy()
     sprite=hero if hero is not None else applin(90,int(phase*3)%4)
-    frame.blit(sprite,(545+page*35,248))
+    walk=int(math.sin(phase*.55)*18) if phase else 0
+    frame.blit(sprite,(545+page*35+walk,248))
+    if phase:
+        # Local wingbeats and water ripples; the landscape and camera remain fixed.
+        from art import cramorant
+        bird=cramorant(56,int(phase*5)%8,-1)
+        frame.blit(bird,(970+int(math.sin(phase*.8)*12),105+int(math.sin(phase*2)*3)))
+        if tier==1:
+            for i in range(3):
+                r=12+int((phase*7+i*15)%40)
+                pygame.draw.arc(frame,(174,224,223),(204-r,267-r//3,r*2,r//2),.1,2.9,1)
     # Gentle, local animation only; phase is held at zero in comfort mode.
     if phase:
         for j in range(4):

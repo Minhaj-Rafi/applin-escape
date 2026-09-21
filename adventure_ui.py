@@ -63,7 +63,7 @@ class ExpeditionUI:
 
     def extra_action(self, action):
         if action == 'back': self.binding=None
-        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story','accessibility','object_info','ending','home_activities'):
+        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','records','contract_collection'):
             self.screen, self.return_screen = self.navigation.pop()
         elif action in ('adventure', 'journal', 'challenge'):
             self.navigation.append((self.screen, self.return_screen))

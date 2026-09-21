@@ -1,18 +1,47 @@
-# Applin Escape — Homeward (v4.2)
+# Applin Escape — Homeward (v4.3)
 
 An offline 2D maze adventure built with Python and Pygame. Lead Applin through five outdoor biomes, collect sun seeds, rescue optional Budew, outwit flying pursuers and reach the animated sanctuary. Play alone or with a second player on the same keyboard.
 
-This upgrade builds on v4.1 and preserves the existing gameplay and local history. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
+This upgrade builds on v4.2 and preserves the existing gameplay and local history. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
 
 ![Wetland co-op](previews/tier_2.png)
 
-## New in v4.2: Clear Trails
+## New in v4.3: Sanctuary Seasons
+
+**Home sanctuary → Sanctuary square** organizes six destinations: berry nursery, resident lodge, milestone board, challenge hall, records and player profile. You can also walk to the cottage entrance and press Interact.
+
+### Timed berry growing
+
+| Variety | Normal growth | Appearance |
+| --- | --- | --- |
+| Oran | 2 minutes | Blue round berry |
+| Pecha | 5 minutes | Pink pointed berry |
+| Cheri | 10 minutes | Paired red berries |
+| Sitrus | 15 minutes | Yellow oval berry |
+
+Choose the variety with the Plant selector before planting an empty bed. Water once to subtract 20% of the original growth time. Repeated watering cannot speed it up further. Deadlines persist and progress while the app is closed. Ripe berries never spoil. Existing ripe v4.2 crops stay ripe; unfinished older crops migrate to an Oran timer. Timers use the computer's wall clock.
+
+### Challenge collection
+
+The hall offers **960 combinations**: 5 biomes × 3 difficulties × 4 abilities × 2 player modes × 8 goals. Goals cover a normal clear plus every combination of no hits, rescuing both Budew and using no escape charges. A successful maze clear only earns mastery when its selected conditions are satisfied. Browse all combinations, see completed entries and select any entry to load it into the hall.
+
+Mastery titles unlock at 1, 10, 50, 120, 240 and 960 distinct completed combinations. Repeating an already completed combination improves its clear count/time but does not add another collection entry. Progress has no daily reset. AC1 codes preserve a contract's goal and underlying AE42/AE31/AE3 challenge. Standard map codes remain supported.
+
+### Records, player name and sharing
+
+Records now page through the complete history using the mouse wheel, Page Up/Down or buttons. In Name & sharing, enter an alias up to 20 characters and save it. Export creates `player_card.png` and `player_card.txt` in `%LOCALAPPDATA%\ApplinEscape\exports`, with your name, local summary, contract count and last challenge code. Share the files yourself. This is not an online account, identity verification or an online leaderboard.
+
+### Animated scenes
+
+Story scenes now add local Applin movement, bird wingbeats and wetland ripples. The landscape and camera remain fixed. Comfort mode holds the scene still. Save backups, recovery, co-op signals and previous improvements remain included.
+
+## Previous update: v4.2 Clear Trails
 
 ### More sanctuary activities
 
-Open **Home sanctuary → Garden & residents**.
+Open **Home sanctuary → Sanctuary square → Berry nursery**.
 
-- Three berry beds: plant, water twice, then harvest two berries. There is no real-time waiting or daily login requirement.
+- Three berry beds: plant, water twice, then harvest two berries. v4.3 replaces instant growth with the timers described above.
 - A paginated resident album includes every rescued Budew. Talk once to earn a first friendship heart, then share garden berries to reach three hearts. Talking to nearby residents in the walkable garden also counts.
 - Home milestones unlock **Picnic** (one harvest and three total friendship hearts) and **Blossom arch** (five harvests and five total hearts). Choose them with the sanctuary decoration button.
 - Gardening, berry inventory, friendships and milestones are saved automatically. These berries are separate from maze collectibles and do not change abilities, difficulty or shiny odds.

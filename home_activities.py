@@ -1,5 +1,7 @@
-"""Optional sanctuary gardening and resident care. No clocks or gameplay bonuses."""
+"""Optional sanctuary gardening and resident care. Saved timers and no gameplay bonuses."""
 import pygame
+import time
+from garden_timers import BERRIES,migrate_crops,crop_stage,crop_action
 from art import berry,leaf,heart
 from sanctuary import budew
 from home_progress import home_progress
@@ -16,19 +18,11 @@ def resident_name(index):
     return NAMES[index%len(NAMES)]+(f' {index//len(NAMES)+1}' if index>=len(NAMES) else '')
 
 
-def care_action(store,action,index=0):
+def care_action(store,action,index=0,kind=0):
     progress=home_progress(store); care=care_state(progress)
     notice='Choose a garden bed or resident.'
-    if action in ('plant','water','harvest') and 0<=index<3:
-        stage=care['beds'][index]
-        if action=='plant' and stage==0:
-            care['beds'][index]=1; notice='A berry seedling is planted. Water it twice to grow ripe berries.'
-        elif action=='water' and stage in (1,2):
-            care['beds'][index]+=1; notice='Fresh leaves unfold.' if stage==1 else 'The berries are ripe. You can harvest them now.'
-        elif action=='harvest' and stage==3:
-            care['beds'][index]=0; care['berries']+=2; care['harvests']+=1
-            notice='Two garden berries harvested. Share them with your rescued Budew.'
-        else: notice='This bed is empty.' if stage==0 else 'This bed is ready to harvest.' if stage==3 else 'Water this seedling to help it grow.'
+    if action in ('plant','water','harvest'):
+        notice=crop_action(care,action,index,kind)
     elif action in ('chat','feed') and 0<=index<progress['rescued']:
         key=str(index); value=care['friends'].get(key,0); name=resident_name(index)
         if action=='chat':
@@ -39,6 +33,9 @@ def care_action(store,action,index=0):
         elif care['berries']<=0: notice='Grow and harvest a garden berry first. Your maze berries are separate.'
         else:
             care['berries']-=1; care['friends'][key]=value+1
+            for name,count in care.get('berry_types',{}).items():
+                if count>0:
+                    care['berry_types'][name]-=1; break
             notice=f'{name} enjoyed the berry! Friendship {value+1}/3.'
     store.set('sanctuary_v4',progress)
     return notice
@@ -56,8 +53,10 @@ class HomeActivitiesUI:
         elif action=='resident_next':
             count=home_progress(self.store)['rescued']; pages=max(1,(count+2)//3)
             self.resident_page=(self.resident_page+1)%pages
+        elif action.startswith('berry_kind:'):
+            self.selected_berry=(self.selected_berry+1)%len(BERRIES)
         elif action.startswith('care:'):
-            _,kind,index=action.split(':'); self.care_notice=care_action(self.store,kind,int(index))
+            _,kind,index=action.split(':'); self.care_notice=care_action(self.store,kind,int(index),self.selected_berry)
         else: return False
         return True
 
@@ -71,12 +70,16 @@ class HomeActivitiesUI:
         else: self.draw_home_milestones(progress,care)
         self.flow_text(self.care_notice,52,699,1170,17,GREEN)
         self.button('Back to sanctuary',(48,781,246,40),'back',True)
-        self.text('No timers, daily streaks or maze advantages. Shiny odds never change.',(326,790),14,MUTED)
+        self.text('Crops grow while you are away and never spoil. Shiny odds stay unchanged.',(326,790),14,MUTED)
 
     def draw_care_garden(self,care):
         d=pygame.draw
         self.text(f'Garden berries: {care["berries"]}   /   Harvests: {care["harvests"]}',(52,214),20,GOLD)
-        for i,stage in enumerate(care['beds']):
+        crops=migrate_crops(care)
+        self.text('  /  '.join(f'{name}: {care.get("berry_types",{}).get(name,0)}' for name,_,_ in BERRIES),(52,243),12,MUTED)
+        self.button('Plant: '+BERRIES[self.selected_berry][0],(922,207,309,40),'berry_kind:next',small=True)
+        for i,crop in enumerate(crops):
+            stage=crop_stage(crop)
             x=48+i*400; self.panel((x,261,383,405),(30,49,41))
             self.text(f'BED {i+1}',(x+24,280),16,GREEN,bold=True)
             center=x+191
@@ -90,11 +93,27 @@ class HomeActivitiesUI:
                 if stage>=2:
                     for sign in (-1,1): leaf(self.canvas,(center+sign*34,385-stage*12),30,(179,224,120),sign)
                 if stage==3:
-                    for dx,dy in ((-32,362),(30,355),(0,330)): berry(self.canvas,(center+dx,dy),20)
-            label=('Empty bed','Seedling','Flowering','Ripe berries')[stage]
+                    for dx,dy in ((-32,362),(30,355),(0,330)): self.draw_variety_berry((center+dx,dy),20,BERRIES[crop['kind']][2])
+            if crop:
+                seconds=max(0,int(crop['ready_at']-time.time()+.999))
+                label=BERRIES[crop['kind']][0]+(' / ripe' if stage==3 else f' / {seconds//60}:{seconds%60:02d}')
+            else: label='Empty bed'
             self.text(label,(center,536),21,TEXT,center=True)
             action='plant' if stage==0 else 'harvest' if stage==3 else 'water'
-            self.button(action.title(),(x+35,587,313,48),f'care:{action}:{i}',True)
+            self.button('Check growth' if crop and crop['watered'] and stage<3 else action.title(),(x+35,587,313,48),f'care:{action}:{i}',True)
+
+    def draw_variety_berry(self,pos,r,color):
+        x,y=pos
+        if color==BERRIES[1][2]:
+            pygame.draw.polygon(self.canvas,color,[(x,y+r),(x-r,y),(x-r//2,y-r),(x,y-r//2),(x+r//2,y-r),(x+r,y)])
+        elif color==BERRIES[2][2]:
+            pygame.draw.circle(self.canvas,color,(x-r//2,y+r//3),r*2//3)
+            pygame.draw.circle(self.canvas,color,(x+r//2,y+r//3),r*2//3)
+            pygame.draw.lines(self.canvas,(111,149,77),False,[(x-r//2,y),(x,y-r),(x+r//2,y)],2)
+        elif color==BERRIES[3][2]: pygame.draw.ellipse(self.canvas,color,(x-r,y-r,2*r,2*r+5))
+        else: pygame.draw.circle(self.canvas,color,(x,y),r)
+        pygame.draw.circle(self.canvas,tuple(min(255,c+35) for c in color),(x-r//3,y-r//3),max(2,r//4))
+        leaf(self.canvas,(x,y-r),r*.5,(142,204,100),.5)
 
     def draw_resident_album(self,progress,care):
         count=progress['rescued']; pages=max(1,(count+2)//3)

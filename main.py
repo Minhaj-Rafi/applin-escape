@@ -22,6 +22,7 @@ from biome_ui import BiomeUI
 from sanctuary import SanctuaryUI
 from polish_ui import PolishUI
 from home_activities import HomeActivitiesUI
+from chronicle_ui import ChronicleUI
 from art import Sprites, seed, berry, heart, leaf
 from audio import Audio
 from world import World, TILE
@@ -38,14 +39,14 @@ GOLD = (247, 203, 118)
 RED = (239, 143, 133)
 
 
-class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
+class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
     def __init__(self, save_dir=None):
         pygame.mixer.pre_init(22050, -16, 1, 512)
         pygame.init()
         info = pygame.display.Info()
         self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
         self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
-        pygame.display.set_caption('Applin Escape | Homeward 4.2')
+        pygame.display.set_caption('Applin Escape | Homeward 4.3')
         self.canvas = pygame.Surface((W, H))
         self.store = Store(save_dir)
         self.init_adventure()
@@ -125,15 +126,18 @@ class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, Expeditio
                 self.campaign_results = data.get('campaign', [])
                 self.story_mode = data.get('story',False)
             else:
+                contract=self.pending_contract or (getattr(self.game,'contract',None) if mode=='contract' and self.game else None)
+                self.pending_contract=None
                 if self.game and self.game.state == 'playing': self.game.abandon()
                 self.game = Session(self.store, tier, mode, skill=self.skill, ability=self.ability,
-                                    coop=self.coop and mode != 'tutorial', code=self.pending_code, shiny_state=shiny_state)
+                                    coop=self.coop and mode != 'tutorial', code=self.pending_code, shiny_state=shiny_state,contract=contract)
                 self.pending_code = None
                 if mode!='campaign': self.story_mode=False
                 self.game.story_run=self.story_mode
                 if any(self.game.shiny):
                     who='Both players are' if all(self.game.shiny) else 'Player 2 is' if self.game.shiny[1] else 'Applin is'
                     self.game.notify(who+' shiny! This rare green colour lasts for this run.')
+            self.store.set('last_shared_code43',self.game.code)
             self.navigation.clear()
             self.pings={}
             self.render_revision = self.game.board_revision
@@ -208,6 +212,7 @@ class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, Expeditio
     def action(self, action):
         self.audio.play('click')
         self.focus = -1
+        if self.chronicle_action(action): return
         if self.activities_action(action): return
         if self.polish_action(action): return
         if self.sanctuary_action(action): return
@@ -297,6 +302,7 @@ class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, Expeditio
 
     def events(self):
         for event in pygame.event.get():
+            if self.chronicle_event(event): continue
             if self.control_event(event): continue
             if event.type == pygame.QUIT:
                 self.running = False
@@ -328,7 +334,7 @@ class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, Expeditio
                 elif event.key == pygame.K_ESCAPE:
                     if self.screen == 'play': self.action('pause')
                     elif self.screen == 'paused': self.action('resume')
-                    elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities'):
+                    elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','contract_collection'):
                         self.action('back')
                 elif self.screen == 'menu' and pygame.K_1 <= event.key <= pygame.K_5:
                     self.selected = event.key-pygame.K_1
@@ -693,29 +699,7 @@ class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, Expeditio
         self.button('Back', (48, 766, 170, 44), 'back', True)
 
     def draw_records(self):
-        self.header('Your orchard journal.', 'Local results, including cleared, caught and abandoned attempts. No online account needed.')
-        count, wins, best = self.store.summary()
-        for i, (label, value) in enumerate((('UNIQUE MAPS', count), ('STAGES CLEARED', wins), ('BEST STAGE SCORE', f'{best:,}'))):
-            x = 44+i*401
-            self.panel((x, 151, 386, 112))
-            self.text(label, (x+22, 169), 13, MUTED, bold=True)
-            self.text(value, (x+22, 197), 36, GREEN)
-        self.text('TIER', (63, 302), 14, MUTED)
-        self.text('RESULT', (330, 302), 14, MUTED)
-        self.text('TIME', (559, 302), 14, MUTED)
-        self.text('STEPS', (736, 302), 14, MUTED)
-        self.text('ESCAPES', (909, 302), 14, MUTED)
-        self.text('SCORE', (1100, 302), 14, MUTED)
-        records = self.store.records()
-        if not records:
-            self.text('Your first adventure is still ahead of you.', (65, 376), 24, TEXT, serif=True)
-        for i, (tier, outcome, seconds, steps, escapes, score) in enumerate(records):
-            y = 340+i* 49
-            self.panel((44, y, 1188, 42), (24, 39, 39), 6, False)
-            for value, x, color in ((TIERS[tier].name, 63, TEXT), (outcome.upper(), 330, GREEN if outcome == 'cleared' else MUTED),
-                                    (f'{seconds:.1f}s', 559, TEXT), (steps, 736, TEXT), (escapes, 909, TEXT), (f'{score:,}', 1100, GOLD)):
-                self.text(value, (x, y+10), 16, color)
-        self.button('Back', (48, 766, 170, 44), 'back', True)
+        self.draw_long_records()
 
     def result_primary(self):
         if self.game.state == 'cleared' and self.game.mode == 'campaign':
@@ -786,6 +770,10 @@ class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, Expeditio
             self.draw_settings()
         elif self.screen == 'records':
             self.draw_records()
+        elif self.screen == 'home_hub': self.draw_home_hub()
+        elif self.screen == 'contract_collection': self.draw_contract_collection()
+        elif self.screen == 'challenge_hall': self.draw_challenge_hall()
+        elif self.screen == 'profile': self.draw_profile()
         elif self.screen == 'home_activities': self.draw_home_activities()
         elif self.screen == 'accessibility': self.draw_accessibility()
         elif self.screen == 'object_info': self.draw_object_info()
@@ -858,7 +846,7 @@ def main():
                 app.draw()
                 pygame.image.save(app.canvas, str(folder/f'tier_{tier+1}.png'))
                 app.game.abandon()
-            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story','accessibility','home_activities'):
+            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story','accessibility','home_activities','home_hub','challenge_hall','contract_collection','profile','records'):
                 app.screen=screen
                 app.draw()
                 pygame.image.save(app.canvas,str(folder/f'{screen}.png'))

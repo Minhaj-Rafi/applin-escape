@@ -1,5 +1,5 @@
-Applin Escape v4.2 Clear Trails - verification
-Python 3.12.14 / Pygame 2.6.1 / Linux / SDL dummy audio and video.
+Applin Escape v4.3 Sanctuary Seasons - verification
+Python 3.12.14, Pygame 2.6.1, Linux with SDL dummy audio/video.
 
 test_audio_assets_and_mixer_load (test_app.Interface.test_audio_assets_and_mixer_load) ... ok
 test_complete_campaign_and_result_actions (test_app.Interface.test_complete_campaign_and_result_actions) ... ok
@@ -91,6 +91,14 @@ test_tactical_rules_are_versioned_and_replay_keeps_legacy (test_polish.Polish.te
 test_tutorial_includes_distraction_and_refills_escapes (test_polish.Polish.test_tutorial_includes_distraction_and_refills_escapes) ... ok
 test_backup_restore_preserves_progress_and_previous_files (test_polish.Recovery.test_backup_restore_preserves_progress_and_previous_files) ... ok
 test_bad_backup_is_rejected_without_changing_current_save (test_polish.Recovery.test_bad_backup_is_rejected_without_changing_current_save) ... ok
+test_four_varieties_have_saved_timers_and_one_water_boost (test_sanctuary43.Growth.test_four_varieties_have_saved_timers_and_one_water_boost) ... ok
+test_legacy_ripe_crops_remain_ripe (test_sanctuary43.Growth.test_legacy_ripe_crops_remain_ripe) ... ok
+test_all_960_contract_codes_roundtrip (test_sanctuary43.Sanctuary43.test_all_960_contract_codes_roundtrip) ... ok
+test_collection_selects_last_combination_and_returns_to_hall (test_sanctuary43.Sanctuary43.test_collection_selects_last_combination_and_returns_to_hall) ... ok
+test_contract_reward_goal_checks_replay_and_save (test_sanctuary43.Sanctuary43.test_contract_reward_goal_checks_replay_and_save) ... ok
+test_full_records_wheel_and_profile_export (test_sanctuary43.Sanctuary43.test_full_records_wheel_and_profile_export) ... ok
+test_hub_contract_retry_and_nested_record_navigation (test_sanctuary43.Sanctuary43.test_hub_contract_retry_and_nested_record_navigation) ... ok
+test_saved_crops_keep_deadline_after_reload (test_sanctuary43.Sanctuary43.test_saved_crops_keep_deadline_after_reload) ... ok
 test_every_stage_starts_full_map (test_skyward.SkywardTests.test_every_stage_starts_full_map) ... ok
 test_flight_animation_does_not_change_path_positions (test_skyward.SkywardTests.test_flight_animation_does_not_change_path_positions) ... ok
 test_rebalanced_difficulty_all_five_stages (test_skyward.SkywardTests.test_rebalanced_difficulty_all_five_stages) ... ok
@@ -104,26 +112,22 @@ test_pickups_have_distinct_silhouettes_and_colours (test_sunseed.SunseedTests.te
 test_shrine_opens_gradually_and_pauses (test_sunseed.SunseedTests.test_shrine_opens_gradually_and_pauses) ... ok
 
 ----------------------------------------------------------------------
-Ran 101 tests in 18.190s
+Ran 109 tests in 18.294s
 
 OK
 
-Verified: original sanctuary crash regression; all five biome interactions; tutorial
-fruit distraction; versioned AE42 interception with legacy replay preservation;
-object inspection and pause navigation; co-op calls and existing key binding priority;
-wrapped reading settings and independent audio levels; chapter endings; previous-best
-comparisons; consistent SQLite backup restoration and rejection of damaged backups.
+Verified saved growth deadlines for all four berry varieties, one-time watering boost,
+no premature harvest, old ripe crop migration, and no spoilage after elapsed time.
+All 960 contract code combinations round-trip. Goal conjunctions, rewards, replay,
+save/continue, retry and collection navigation are checked. Full-history record paging,
+profile name saving and local PNG/text exports are checked.
+The previous 101 checks cover biome interactions, sanctuary crash regression, co-op,
+comfort, recovery, story and shiny state preservation.
 
-Sanctuary checks: planting/watering/harvesting; invalid actions; no negative berry
-inventory; capped friendship; picnic and arch unlocks; resident pagination; mouse
-interaction; navigation; stationary comfort rendering; active-run/shiny preservation.
-
-PyInstaller 6.16.0 Linux build succeeded. Frozen preview --verify-build exited 0,
-including the new home activities and accessibility screens. Audio and controller
-imports loaded in the bundle.
-Visual review: large-text object details, story and ending, results, accessibility,
-berry garden, resident album and home milestones.
-
-Native Windows execution, physical controllers and subjective difficulty balancing
-remain pending. WINDOWS_PLAYTEST.md lists native checks. The ZIP contains source,
-assets and Windows launch/build/recovery scripts, not a Windows executable.
+PyInstaller 6.16.0 Linux build and frozen --preview --verify-build exited successfully.
+The package rendered the sanctuary hub, challenge hall, collection, records and profile,
+loaded audio assets and controller support. Visual review covered the hub, hall and
+nursery. Comfort-mode story rendering remains static.
+Native Windows execution, hardware gamepads and long-form human balance testing remain
+pending. Windows build/test/recovery scripts are included; no Windows executable is
+included in this source ZIP.

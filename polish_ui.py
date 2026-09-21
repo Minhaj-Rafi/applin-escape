@@ -27,6 +27,18 @@ class PolishUI:
         self.inspect_pos=None
         self.ending=False
         self.pings={}
+        from home_activities import care_state
+        from garden_timers import migrate_crops
+        progress=home_progress(self.store)
+        migrate_crops(care_state(progress))
+        self.store.set('sanctuary_v4',progress)
+        self.pending_contract=None
+        self.collection_page=0
+        self.contract_goal=0
+        self.record_offset=0
+        self.name_input=''
+        self.profile_notice=''
+        self.selected_berry=0
         self.home_tab=0
         self.resident_page=0
         self.care_notice='Grow a little garden and meet your rescued Budew.'
@@ -130,7 +142,7 @@ class PolishUI:
     def draw_ending(self):
         g=self.game; title,body=ENDINGS[g.tier]
         self.header(title,'Chapter ending / take your time')
-        phase=g.elapsed if self.characters and not self.comfort else 0
+        phase=self.t if self.characters and not self.comfort else 0
         draw_scene(self.canvas,pygame.Rect(48,143,1184,300),g.tier,2,self.hero_sprite(90,0,g.direction),phase)
         for i in range(g.rescued): budew(self.canvas,(759+i*38,408),32)
         self.panel((48,460,1184,260))
@@ -185,5 +197,8 @@ class PolishUI:
 
     def result_comparison(self):
         g=self.game; old=getattr(g,'previous_best',{})
+        if getattr(g,'contract',None):
+            from challenge_hall import goal_met
+            return g.contract+(': mastery earned!' if goal_met(g) else ': goal not met this run. Try another route.')
         if not old: return 'First clear in this rules category.' if g.state=='cleared' else 'Use the warnings and distractions to plan your next route.'
         return f'Compared with prior best: {g.elapsed-old["seconds"]:+.1f}s / {g.steps-old["steps"]:+d} steps (lower is better).'

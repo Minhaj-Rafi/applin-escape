@@ -141,6 +141,8 @@ class SanctuaryUI:
 
     def home_interact(self):
         progress=home_progress(self.store); x,y=self.home_pos
+        if math.hypot(x-390,y-334)<58:
+            self.action('home_hub'); return
         residents=RESIDENTS[:min(progress['rescued'],len(RESIDENTS))]
         nearby=[p for p in residents if math.hypot(p[0]-x,p[1]-y)<55]
         if nearby:
@@ -192,7 +194,7 @@ class SanctuaryUI:
     def draw_sanctuary(self):
         progress=home_progress(self.store); restored=progress['restored']; d=pygame.draw
         self.header('A little place called home.', 'Your victories restore this garden. Rescued Budew arrive when you reach a sanctuary.')
-        self.button('Garden & residents',(954,33,278,44),'home_activities',True,small=True)
+        self.button('Sanctuary square',(954,33,278,44),'home_hub',True,small=True)
         self.panel((42,147,842,588),(69,111,74),22)
         # Pebbles and grass details use fixed coordinates: no moving background.
         for i in range(135):

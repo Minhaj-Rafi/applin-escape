@@ -210,7 +210,7 @@ class ControlUI:
         elif event.button==pygame.CONTROLLER_BUTTON_START and self.screen=='paused': self.action('resume')
         elif event.button==pygame.CONTROLLER_BUTTON_B:
             if self.screen=='paused': self.action('resume')
-            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities'): self.action('back')
+            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','records','contract_collection'): self.action('back')
         elif event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT,
                                pygame.CONTROLLER_BUTTON_DPAD_UP,pygame.CONTROLLER_BUTTON_DPAD_LEFT):
             step=1 if event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else -1

@@ -5,6 +5,7 @@ import hashlib
 import random
 import secrets
 from home_progress import roll_shiny, credit_home
+from challenge_hall import GOALS,credit_contract
 from model import Session as BaseSession, Enemy, TIERS, DIRS, distances, neighbors, path_to
 
 ABILITIES = ('Leaf Slip', 'Quick Dash', 'Decoy Apple', 'Camouflage')
@@ -43,7 +44,12 @@ def challenge_code(tier, seed, skill, ability, coop, legacy=False, rules=42):
 
 
 def parse_code(code):
-    parts = code.strip().upper().split('-')
+    code=code.strip().upper()
+    if code.startswith('AC1-'):
+        wrapper=code.split('-',2)
+        if len(wrapper)!=3 or wrapper[1] not in tuple(str(i) for i in range(len(GOALS))): raise ValueError('Invalid contract code.')
+        code=wrapper[2]
+    parts = code.split('-')
     try:
         prefix, tier, seed, options, checksum = parts
         body = '-'.join(parts[:-1])
@@ -64,8 +70,12 @@ class ReplayStore:
 
 class Session(BiomeRules, BaseSession):
     def __init__(self, store, tier=0, mode='practice', seed_source=None,
-                 skill='Standard', ability='Leaf Slip', coop=False, code=None, shiny_state=None):
+                 skill='Standard', ability='Leaf Slip', coop=False, code=None, shiny_state=None, contract=None):
         replay_seed = None
+        if code and code.strip().upper().startswith('AC1-'):
+            parse_code(code)
+            _,goal,code=code.strip().upper().split('-',2); contract=GOALS[int(goal)]
+        self.contract=contract if contract in GOALS else None
         if code:
             tier, replay_seed, skill, ability, coop = parse_code(code)
             mode = 'challenge'
@@ -74,6 +84,7 @@ class Session(BiomeRules, BaseSession):
         self.store = store
         self.skill, self.ability, self.coop = skill, ability, coop
         self.code = challenge_code(tier, self.seed, skill, ability, coop, legacy=bool(code and code.strip().upper().startswith('AE3-')),rules=31 if code and code.strip().upper().startswith('AE31-') else 42)
+        if self.contract: self.code=f'AC1-{GOALS.index(self.contract)}-'+self.code
         self.shiny = list(shiny_state) if shiny_state is not None else roll_shiny(coop)
         if not coop: self.shiny[1]=False
         self.stage_id=secrets.token_hex(16)
@@ -162,6 +173,7 @@ class Session(BiomeRules, BaseSession):
         if not hasattr(obj,'story_run'): obj.story_run=False
         if not hasattr(obj,'berries_collected'): obj.berries_collected=0
         if not hasattr(obj,'previous_best'): obj.previous_best={}
+        if not hasattr(obj,'contract'): obj.contract=None
         for enemy in obj.enemies:
             if not hasattr(enemy,'recovery'): enemy.recovery=0.0
         return obj
@@ -174,9 +186,11 @@ class Session(BiomeRules, BaseSession):
         super().finish(outcome)
         self.mode = original_mode
         credit_home(self)
+        credit_contract(self)
         self.store.set('active_expedition', None)
         if outcome == 'cleared' and original_mode != 'tutorial':
             key = f'{self.tier}/{self.skill}/{self.coop}/{self.ability}/{original_mode}/v{self.rules_version}'
+            if self.contract: key += '/contract/'+self.contract
             if original_mode == 'challenge': key += '/' + self.code
             records = self.store.get('personal_bests', {})
             old = records.get(key, {})

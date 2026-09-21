@@ -4,7 +4,7 @@ cd /d "%~dp0"
 title Applin Escape
 
 echo.
-echo   APPLIN ESCAPE - HOMEWARD 4.2
+echo   APPLIN ESCAPE - HOMEWARD 4.3
 echo   First launch sets up a private Python environment.
 echo.
 

@@ -1,3 +1,2 @@
-4.2 - Homeward: Clear Trails
-Interaction inspection, six-part tutorial, tactical pursuit, story endings, co-op signals, readable text, audio levels and save recovery.
-Expanded sanctuary: berry beds, resident album, friendship and decorative milestones.
+4.3 - Homeward: Sanctuary Seasons
+Organized sanctuary hub, four timed berry varieties, animated scenes, 960 mastery combinations, full records and local player-card sharing.
