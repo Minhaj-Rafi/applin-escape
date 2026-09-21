@@ -1,2 +1,2 @@
-5.0 - Better Together
-Optional paired co-op beacons, five biome team stamps and a Partner badge journal.
+5.1 - Release Review
+Unified version labels, controller lifetime/disconnect fixes, full release previews and consolidated player guide.

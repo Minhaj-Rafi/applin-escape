@@ -1,4 +1,5 @@
 """Desktop entry point with a readable crash report for windowed builds."""
+from release_info import VERSION
 import sys
 import traceback
 from pathlib import Path
@@ -11,7 +12,7 @@ def launch():
     except Exception:
         import platform
         from datetime import datetime,timezone
-        report=f'Applin Escape 5.0 | {datetime.now(timezone.utc).isoformat()}\nPython {sys.version}\nPlatform {platform.platform()}\n\n'+traceback.format_exc()
+        report=f'Applin Escape {VERSION} | {datetime.now(timezone.utc).isoformat()}\nPython {sys.version}\nPlatform {platform.platform()}\n\n'+traceback.format_exc()
         from model import default_save_dir
         folder=default_save_dir()
         folder.mkdir(parents=True,exist_ok=True)

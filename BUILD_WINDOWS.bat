@@ -26,7 +26,10 @@ set "SDL_VIDEODRIVER=dummy"
 set "SDL_AUDIODRIVER=dummy"
 start "" /wait "dist\ApplinEscape\ApplinEscape.exe" --preview build-preview --verify-build
 if errorlevel 1 goto failed
-if not exist "build-preview\controls.png" goto failed
+if not exist "build-preview\release_check.json" goto failed
+if not exist "build-preview\resident_profile.png" goto failed
+if not exist "build-preview\team_journal.png" goto failed
+if not exist "build-preview\support.png" goto failed
 set "SDL_VIDEODRIVER="
 set "SDL_AUDIODRIVER="
 echo Build and bundled-asset smoke check complete. Open dist\ApplinEscape\ApplinEscape.exe

@@ -14,6 +14,7 @@ try:
 except ImportError:
     raise SystemExit('Pygame is missing. Double-click PLAY_WINDOWS.bat or run: python -m pip install -r requirements.txt')
 
+from release_info import VERSION
 from model import Store, TIERS, DIRS, ROSTERS
 from expedition import Session
 from adventure_ui import ExpeditionUI
@@ -46,7 +47,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         info = pygame.display.Info()
         self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
         self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
-        pygame.display.set_caption('Applin Escape | Homeward 5.0')
+        pygame.display.set_caption('Applin Escape | Homeward '+VERSION)
         self.canvas = pygame.Surface((W, H))
         self.store = Store(save_dir)
         self.init_adventure()
@@ -478,7 +479,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         if getattr(self,'input_notice',''): self.text(self.input_notice,(48,728),12,GOLD)
         count, wins, best = self.cached_summary
         self.text(f'{count} maps / {wins} clears / best {best:,}', (48, 754), 16, MUTED)
-        self.text('v5.0 / Separate maze mastery and sanctuary collections', (48, 796), 12, MUTED)
+        self.text('v'+VERSION+' / Separate maze mastery and sanctuary collections', (48, 796), 12, MUTED)
         self.button('Maze challenges',(610,758,235,46),'challenge_hall',small=True)
         self.button('Home sanctuary',(862,758,235,46),'sanctuary',small=True)
         self.button('Quit', (1114,758,118,46),'quit',small=True)
@@ -841,27 +842,8 @@ def main():
     parser.add_argument('--preview', help='Render menu and all five tiers to this folder using a temporary save')
     args = parser.parse_args()
     if args.preview:
-        folder = Path(args.preview)
-        folder.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory() as directory:
-            app = App(directory)
-            if args.verify_build:
-                if not app.audio.available or len(app.audio.danger_layers)!=5 or not app.controls.enabled:
-                    raise RuntimeError('Bundled audio or controller support did not load.')
-                required={'fruit','bell','turn','wind','warning','rescue'}
-                if not required <= app.audio.sounds.keys():
-                    raise RuntimeError('Bundled biome effects are missing.')
-            pygame.image.save(app.canvas, str(folder/'menu.png'))
-            for tier in range(5):
-                app.start(tier)
-                app.draw()
-                pygame.image.save(app.canvas, str(folder/f'tier_{tier+1}.png'))
-                app.game.abandon()
-            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story','accessibility','home_activities','home_hub','challenge_hall','contract_collection','profile','records','garden_collection','reward_room'):
-                app.screen=screen
-                app.draw()
-                pygame.image.save(app.canvas,str(folder/f'{screen}.png'))
-            app.close()
+        from release_preview import render_release
+        render_release(Path(args.preview),args.verify_build)
     else:
         App(args.save_dir).run()
 

@@ -1,14 +1,18 @@
-Applin Escape v5.0
-Linux / Python 3.12.14 / Pygame 2.6.1
-..................................................................................................................................................
+Applin Escape 5.1 release verification
+Linux / Python 3.12.14 / Pygame 2.6.1 / PyInstaller 6.16.0
+
+.....................................................................................................................................................
 ----------------------------------------------------------------------
-Ran 146 tests in 22.828s
+Ran 149 tests in 23.177s
 
 OK
 Controller event error: keyboard and mouse active. Restart to retry controllers.
 SETUP CHECK PASSED
-Report saved to: /tmp/tmp7fpkridl/exports/setup_check.json
+Report saved to: /tmp/tmp8zje4z6d/exports/setup_check.json
 This checks startup and rendering only. Actual controller input and long play sessions still need testing.
 
-Visually inspected co-op HUD, numbered pedestals and Team journal.
-New tests cover 15 generated co-op maps, unchanged RNG/collectibles, hold resets, bank-on-clear/idempotent awards, save migration and pause behavior. Click-to-instructions added afterward and rendered successfully. Windows physical-device verification pending.
+Source preview: 51 captures, bundled asset check passed.
+Frozen Linux application: 51 captures, bundled asset check passed, exit 0.
+Window sizes: 800x600, 1280x720, 1600x900.
+Representative story and resident-profile screenshots visually inspected.
+Native Windows and physical input-device checks remain outstanding.

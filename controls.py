@@ -35,6 +35,7 @@ class Controls:
         if not isinstance(self.pad_buttons,list) or len(self.pad_buttons)!=2 or len(set(self.pad_buttons))!=2 or not all(isinstance(b,int) and 0<=b<15 and b not in self.reserved_buttons() for b in self.pad_buttons):
             self.pad_buttons=[pygame.CONTROLLER_BUTTON_A,pygame.CONTROLLER_BUTTON_X]
         self.pads={}
+        self.joysticks={}
         self.enabled=False
         from event_safety import configure_events
         configure_events()
@@ -115,8 +116,16 @@ class Controls:
         if not self.enabled: return False
         removed=False
         for instance,(pad,slot) in list(self.pads.items()):
-            if not pad.attached():
-                pad.quit(); del self.pads[instance]; removed=True
+            try: attached=pad.attached()
+            except pygame.error: attached=False
+            if not attached:
+                try: pad.quit()
+                except pygame.error: pass
+                joy=self.joysticks.pop(instance,None)
+                if joy:
+                    try: joy.quit()
+                    except pygame.error: pass
+                del self.pads[instance]; removed=True
         used={slot for _,slot in self.pads.values()}
         try:
             for index in range(sdl_controller.get_count()):
@@ -126,6 +135,7 @@ class Controls:
                 if instance in self.pads or len(used)>=2: continue
                 slot=next(i for i in (0,1) if i not in used)
                 self.pads[instance]=(sdl_controller.Controller(index),slot)
+                self.joysticks[instance]=joystick
                 used.add(slot)
         except pygame.error:
             pass
@@ -153,6 +163,10 @@ class Controls:
             try: pad.quit()
             except pygame.error: pass
         self.pads.clear()
+        for joy in self.joysticks.values():
+            try: joy.quit()
+            except pygame.error: pass
+        self.joysticks.clear()
 
 
 class ControlUI:

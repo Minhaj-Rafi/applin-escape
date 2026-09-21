@@ -2,7 +2,7 @@
 import json,platform
 from pathlib import Path
 import pygame
-VERSION='5.0'
+from release_info import VERSION
 
 def snapshot(app):
     return {'game_version':VERSION,'python':platform.python_version(),'os':platform.system(),
