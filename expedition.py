@@ -13,6 +13,7 @@ COSMETICS = ('Orchard', 'Golden', 'Moonleaf', 'Blossom')
 TUTORIAL = (
     'Move 6 steps with your movement keys or left stick. The map stays still.',
     'Walk into tall grass. Its leaves help hide you from distant birds.',
+    'Stand beside a fruit branch and press Interact to distract a bird.',
     'Try your escape ability (see the HUD). Practice charges refill here.',
     'Collect a gold sun seed. Follow the gold diamond on the map.',
     'Collect the remaining seeds, then enter the glowing shrine.',
@@ -36,8 +37,8 @@ def decode(value):
     return value
 
 
-def challenge_code(tier, seed, skill, ability, coop, legacy=False):
-    body = f'{"AE3" if legacy else "AE31"}-{tier+1}-{seed:016X}-{SKILLS.index(skill)}{ABILITIES.index(ability)}{int(coop)}'
+def challenge_code(tier, seed, skill, ability, coop, legacy=False, rules=42):
+    body = f'{"AE3" if legacy else "AE31" if rules==31 else "AE42"}-{tier+1}-{seed:016X}-{SKILLS.index(skill)}{ABILITIES.index(ability)}{int(coop)}'
     return body + '-' + hashlib.sha256(body.encode()).hexdigest()[:6].upper()
 
 
@@ -46,13 +47,13 @@ def parse_code(code):
     try:
         prefix, tier, seed, options, checksum = parts
         body = '-'.join(parts[:-1])
-        if prefix not in ('AE3','AE31') or len(seed) != 16 or len(options) != 3: raise ValueError
+        if prefix not in ('AE3','AE31','AE42') or len(seed) != 16 or len(options) != 3: raise ValueError
         if hashlib.sha256(body.encode()).hexdigest()[:6].upper() != checksum: raise ValueError
         tier, seed = int(tier)-1, int(seed, 16)
         if tier not in range(5) or options[2] not in '01': raise ValueError
         return tier, seed, SKILLS[int(options[0])], ABILITIES[int(options[1])], options[2] == '1'
     except (ValueError, IndexError):
-        raise ValueError('Invalid challenge code. Paste the complete AE31 or legacy AE3 code.') from None
+        raise ValueError('Invalid challenge code. Paste the complete AE42, AE31 or legacy AE3 code.') from None
 
 
 class ReplayStore:
@@ -72,7 +73,7 @@ class Session(BiomeRules, BaseSession):
                          (lambda: replay_seed) if code else seed_source)
         self.store = store
         self.skill, self.ability, self.coop = skill, ability, coop
-        self.code = challenge_code(tier, self.seed, skill, ability, coop, legacy=bool(code and code.strip().upper().startswith('AE3-')))
+        self.code = challenge_code(tier, self.seed, skill, ability, coop, legacy=bool(code and code.strip().upper().startswith('AE3-')),rules=31 if code and code.strip().upper().startswith('AE31-') else 42)
         self.shiny = list(shiny_state) if shiny_state is not None else roll_shiny(coop)
         if not coop: self.shiny[1]=False
         self.stage_id=secrets.token_hex(16)
@@ -120,6 +121,9 @@ class Session(BiomeRules, BaseSession):
         self.bridge = crossings[0] if crossings else None
         self.ledge = next((c for c in crossings[1:] if c[0] != self.bridge[0]), None) if self.bridge else None
         self.init_biome_rules(legacy=bool(code and code.strip().upper().startswith('AE3-')))
+        if not code or code.strip().upper().startswith('AE42-'): self.rules_version=42
+        self.berries_collected=0
+        self.previous_best={}
         self.tutorial_seen_grass = False
         self.tutorial_seed = False
         if mode == 'tutorial':
@@ -156,6 +160,8 @@ class Session(BiomeRules, BaseSession):
         if not hasattr(obj,'shiny'): obj.shiny=[False,False]
         if not hasattr(obj,'stage_id'): obj.stage_id=secrets.token_hex(16)
         if not hasattr(obj,'story_run'): obj.story_run=False
+        if not hasattr(obj,'berries_collected'): obj.berries_collected=0
+        if not hasattr(obj,'previous_best'): obj.previous_best={}
         for enemy in obj.enemies:
             if not hasattr(enemy,'recovery'): enemy.recovery=0.0
         return obj
@@ -174,6 +180,7 @@ class Session(BiomeRules, BaseSession):
             if original_mode == 'challenge': key += '/' + self.code
             records = self.store.get('personal_bests', {})
             old = records.get(key, {})
+            self.previous_best=dict(old)
             records[key] = {'seconds': min(self.elapsed, old.get('seconds', 1e20)),
                             'steps': min(self.steps, old.get('steps', 10**12)),
                             'no_hit': bool(old.get('no_hit', False) or self.hits == 0)}
@@ -190,12 +197,13 @@ class Session(BiomeRules, BaseSession):
 
     def collect(self):
         had_seed = self.player in self.seeds
+        if self.player in self.berries: self.berries_collected=getattr(self,'berries_collected',0)+1
         if self.player in self.rescues:
             self.rescues.remove(self.player)
             self.rescued += 1
             self.score += 350
             self.events.append(('rescue', self.player))
-            self.notify('A little friend is safe! Optional rescue +350.')
+            self.notify('Budew: Thank you! I will meet you at home. Rescue +350.')
         if self.player == self.switch and self.bridge and not self.bridge_open and not (self.rules_version>=31 and self.tier in (1,3)):
             x, y = self.bridge[0]
             self.grid[y][x] = 0
@@ -275,7 +283,7 @@ class Session(BiomeRules, BaseSession):
             if not self.collision(): self.collect()
             self.events.append(('land', self.player))
             return True
-        self.notify('White ledge: use its tail side. Teal switch: walk over it to open the bridge.')
+        self.notify('Tidal stones change automatically; wait for a clear crossing.' if self.tier==1 else 'Move beside a fruit branch, bell or wheel, or stand on a wind feather. Click a landmark for details.')
         return False
 
     def escape(self):
@@ -337,6 +345,17 @@ class Session(BiomeRules, BaseSession):
             if route and len(route) <= self.config.detection and len(route)-1 < player_dist.get(enemy.pos, 999):
                 enemy.mood = 'chase'
                 target = other
+        if self.rules_version>=42 and self.tier>=2 and self.skill!='Relaxed' and enemy.mood=='chase' and self.decoy_time<=0:
+            index=self.enemies.index(enemy)
+            # One interceptor at tier 3, two at tiers 4/5; the rest keep their species roles.
+            if 1 <= index <= (1 if self.tier==2 else 2):
+                ahead=self.player
+                for _ in range(2+self.tier):
+                    nxt=(ahead[0]+self.direction[0],ahead[1]+self.direction[1])
+                    if nxt not in neighbors(self.grid,ahead): break
+                    ahead=nxt
+                    if len(list(neighbors(self.grid,ahead)))>=3: break
+                if ahead!=self.player: target=ahead
         return target
 
     def update(self, dt):
@@ -416,6 +435,6 @@ class Session(BiomeRules, BaseSession):
                 self.notify('Partner needs help! Touch them to rescue, or wait 8 seconds.')
         if self.mode == 'tutorial':
             self.escapes = max(self.escapes, 9)
-            checks = (self.steps >= 6, self.tutorial_seen_grass, self.escapes_used > 0, self.tutorial_seed)
-            while self.tutorial_step < 4 and checks[self.tutorial_step]: self.tutorial_step += 1
+            checks = (self.steps >= 6, self.tutorial_seen_grass, self.biome_uses>0, self.escapes_used > 0, self.tutorial_seed)
+            while self.tutorial_step < 5 and checks[self.tutorial_step]: self.tutorial_step += 1
             self.notice, self.notice_time = TUTORIAL[self.tutorial_step], 1.0

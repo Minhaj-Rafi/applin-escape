@@ -196,7 +196,9 @@ class ControlUI:
         if self.screen=='play':
             player=self.controls.player_for(event.instance_id,self.game.coop)
             if player is None: return True
-            if event.button==pygame.CONTROLLER_BUTTON_START: self.action('pause')
+            if event.button==pygame.CONTROLLER_BUTTON_BACK and self.game.coop and event.button not in self.controls.pad_buttons:
+                self.action('ping:'+str(player))
+            elif event.button==pygame.CONTROLLER_BUTTON_START: self.action('pause')
             elif event.button==self.controls.pad_buttons[0]:
                 (self.game.escape_partner if player else self.game.escape)(); self.consume_events()
             elif event.button==self.controls.pad_buttons[1]:
@@ -208,7 +210,7 @@ class ControlUI:
         elif event.button==pygame.CONTROLLER_BUTTON_START and self.screen=='paused': self.action('resume')
         elif event.button==pygame.CONTROLLER_BUTTON_B:
             if self.screen=='paused': self.action('resume')
-            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge','sanctuary','story','biome_guide'): self.action('back')
+            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities'): self.action('back')
         elif event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT,
                                pygame.CONTROLLER_BUTTON_DPAD_UP,pygame.CONTROLLER_BUTTON_DPAD_LEFT):
             step=1 if event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else -1

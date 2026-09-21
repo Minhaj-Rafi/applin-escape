@@ -15,6 +15,10 @@ if not exist ".build-venv\Scripts\python.exe" (
 )
 ".build-venv\Scripts\python.exe" -m pip install -r requirements-build.txt
 if errorlevel 1 goto failed
+set "SDL_VIDEODRIVER=dummy"
+set "SDL_AUDIODRIVER=dummy"
+".build-venv\Scripts\python.exe" -m unittest discover -s tests -v
+if errorlevel 1 goto failed
 ".build-venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean ApplinEscape.spec
 if errorlevel 1 goto failed
 echo.

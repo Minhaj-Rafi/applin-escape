@@ -63,7 +63,7 @@ class ExpeditionUI:
 
     def extra_action(self, action):
         if action == 'back': self.binding=None
-        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story'):
+        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story','accessibility','object_info','ending','home_activities'):
             self.screen, self.return_screen = self.navigation.pop()
         elif action in ('adventure', 'journal', 'challenge'):
             self.navigation.append((self.screen, self.return_screen))
@@ -164,11 +164,11 @@ class ExpeditionUI:
             self.button('Continue saved game',(919,766,312,44),'continue',True)
 
     def draw_challenge(self):
-        self.header('One maze. A shared challenge.', 'AE31 codes use new biome rules. Legacy AE3 codes retain v3.0 rules. Replays allow repeat maps.')
+        self.header('One maze. A shared challenge.', 'AE42 uses tactical pursuit. AE31 and AE3 retain their original rules. Replays allow repeat maps.')
         self.panel((44,162,1188,244))
-        self.text('TYPE OR PASTE AN AE31 OR LEGACY AE3 CODE', (65,183),14,GREEN,bold=True)
+        self.text('TYPE OR PASTE AN AE42, AE31 OR AE3 CODE', (65,183),14,GREEN,bold=True)
         pygame.draw.rect(self.canvas,(12,25,28),(64,224,1146,58),border_radius=8)
-        self.text(self.challenge_input or 'AE31-...' , (80,240),22,TEXT)
+        self.text(self.challenge_input or 'AE42-...' , (80,240),22,TEXT)
         self.text('Ctrl+V to paste   /   Backspace to edit   /   Enter to begin', (65,311),16,MUTED)
         if self.challenge_error:
             self.text(self.challenge_error,(65,357),14,GOLD)
@@ -250,7 +250,14 @@ class ExpeditionUI:
                 sign=lambda n:(n>0)-(n<0)
                 gaze=(sign(nearest.pos[0]-pos[0])*(-1 if direction[0]<0 else 1),sign(nearest.pos[1]-pos[1]))
             blink=int(self.game.elapsed*10)%40==39
-        key=(size,frame,tuple(direction),style,gaze,blink)
+        pose='idle'
+        if self.game and self.characters and not self.comfort:
+            pos=self.game.partner['pos'] if partner else self.game.player
+            visual=self.visual_partner if partner else self.visual_player
+            if abs(pos[0]-visual[0])+abs(pos[1]-visual[1])>.04: pose='run'
+            if self.game.escape_cooldown>.6: pose='escape'
+            elif gaze!=(0,0): pose='alert'
+        key=(size,frame,tuple(direction),style,gaze,blink,pose)
         if key in self.character_cache: return self.character_cache[key]
         sprite=applin(size,frame,direction[0] or 1,gaze,blink)
         # Apply an apple-body palette without recoloring eyes, leaves or transparent pixels.
@@ -271,6 +278,16 @@ class ExpeditionUI:
                 a=i*math.tau/5
                 pygame.draw.circle(sprite,(249,203,222),(cx+int(math.cos(a)*size*.035),cy+int(math.sin(a)*size*.035)),max(1,size//32))
             pygame.draw.circle(sprite,GOLD,(cx,cy),max(1,size//45))
+        if pose=='run':
+            sprite=pygame.transform.rotate(sprite,(-4 if frame%2 else 4)*(direction[0] or 1))
+            sprite=pygame.transform.smoothscale(sprite,(size,size))
+        elif pose=='escape':
+            squashed=pygame.transform.smoothscale(sprite,(size,max(1,int(size*.83))))
+            sprite=pygame.Surface((size,size),pygame.SRCALPHA); sprite.blit(squashed,(0,int(size*.17)))
+            pygame.draw.line(sprite,GREEN,(size*.12,size*.55),(size*.29,size*.55),2)
+        elif pose=='alert':
+            pygame.draw.line(sprite,GOLD,(size*.16,size*.15),(size*.10,size*.07),2)
+            pygame.draw.line(sprite,GOLD,(size*.24,size*.11),(size*.24,size*.02),2)
         if len(self.character_cache)>768: self.character_cache.clear()
         self.character_cache[key]=sprite
         return sprite

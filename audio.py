@@ -61,6 +61,8 @@ class Audio:
     def __init__(self, music=True, effects=True):
         self.available = False
         self.music, self.effects = music, effects
+        self.music_volume=.4
+        self.effects_volume=.8
         self.sounds = {}
         self.current_biome = None
         self.danger = False
@@ -99,8 +101,8 @@ class Audio:
 
     def apply(self):
         if self.available:
-            pygame.mixer.music.set_volume(.4 if self.music else 0)
-            if self.danger_channel: self.danger_channel.set_volume(.28 if self.music and self.danger else 0)
+            pygame.mixer.music.set_volume(self.music_volume if self.music else 0)
+            if self.danger_channel: self.danger_channel.set_volume(self.music_volume*.7 if self.music and self.danger else 0)
 
     def set_danger(self, active):
         active = bool(active and self.current_biome is not None)
@@ -115,7 +117,7 @@ class Audio:
     def play(self, event):
         if self.available and self.effects and event in self.sounds:
             channel = self.sounds[event].play()
-            if channel: channel.set_volume(.55 if event == 'warning' else .8)
+            if channel: channel.set_volume(self.effects_volume*(.6875 if event == 'warning' else 1))
 
 
 if __name__ == '__main__':

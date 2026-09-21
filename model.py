@@ -62,6 +62,10 @@ class Store:
             CREATE TABLE IF NOT EXISTS settings (name TEXT PRIMARY KEY, value TEXT);
         ''')
         self.db.commit()
+        from save_recovery import backup_store
+        self.backup_error=None
+        try: backup_store(self)
+        except (OSError,sqlite3.Error) as exc: self.backup_error=str(exc)
 
     def claim(self, layout, seed, tier):
         digest = hashlib.sha256(layout.encode()).hexdigest()
@@ -102,6 +106,9 @@ class Store:
         return count, wins, score
 
     def close(self):
+        from save_recovery import backup_store
+        try: backup_store(self)
+        except (OSError,sqlite3.Error): pass
         self.db.close()
 
 

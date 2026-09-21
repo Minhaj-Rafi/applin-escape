@@ -1,10 +1,44 @@
-# Applin Escape — Homeward (v4.0)
+# Applin Escape — Homeward (v4.2)
 
 An offline 2D maze adventure built with Python and Pygame. Lead Applin through five outdoor biomes, collect sun seeds, rescue optional Budew, outwit flying pursuers and reach the animated sanctuary. Play alone or with a second player on the same keyboard.
 
-This upgrade builds on v3.1 and preserves the existing gameplay and local history. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
+This upgrade builds on v4.1 and preserves the existing gameplay and local history. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
 
 ![Wetland co-op](previews/tier_2.png)
+
+## New in v4.2: Clear Trails
+
+### More sanctuary activities
+
+Open **Home sanctuary → Garden & residents**.
+
+- Three berry beds: plant, water twice, then harvest two berries. There is no real-time waiting or daily login requirement.
+- A paginated resident album includes every rescued Budew. Talk once to earn a first friendship heart, then share garden berries to reach three hearts. Talking to nearby residents in the walkable garden also counts.
+- Home milestones unlock **Picnic** (one harvest and three total friendship hearts) and **Blossom arch** (five harvests and five total hearts). Choose them with the sanctuary decoration button.
+- Gardening, berry inventory, friendships and milestones are saved automatically. These berries are separate from maze collectibles and do not change abilities, difficulty or shiny odds.
+
+### Adventure polish
+
+- **Inspect landmarks:** click fruit, tide, bell, wheel or wind tiles to pause and see their use, availability and real cooldown. Keyboard/controller users can use Pause → Inspect nearest landmark. Return to the pause menu and resume when ready. Nearby hints also show live cooldowns.
+- **Six-part safe tutorial:** movement, grass, fruit distraction, escape, seed and shrine. A dotted route points toward lesson targets. Tutorial health remains protected and escape charges refill.
+- **Tactical difficulty progression:** in new Standard/Expert runs, one interceptor in tier 3 and two in tiers 4–5 aim ahead toward corridors/junctions. Other birds keep their species roles. Relaxed keeps the gentler targeting. Distractions remain effective. New runs use AE42 challenge codes; AE31 and AE3 replays keep their original rules. Existing saved runs retain their rules version. Balance still needs human playtesting.
+- **Readable predators and poses:** persistent shape cues supplement status colours. Applin has movement tilt, alert marks and escape compression; swooping birds bank. Comfort mode disables these animated poses.
+- **Story payoffs:** each cleared stage offers a Chapter ending button with a short illustrated scene and rescue-dependent dialogue. The last ending reports your saved sanctuary totals. Rescue messages include a short Budew response.
+- **Co-op calls:** F3 calls from P1, F4 from P2; buttons also appear above the map. On a mapped controller, Back/Select calls from that controller's player when it is not rebound to an ability. Numbered flags last five gameplay seconds. A downed partner has a map box and a rescue countdown.
+- **Results:** seeds, rescued Budew, berries, elapsed time, steps, escapes, score and comparison with prior best time/steps for the same rules category. Different generated mazes are not identical courses; treat the comparison as personal progress, not a controlled speedrun.
+- **Accessibility:** Settings → Sound / readable text offers independent music/effect levels and larger wrapped reading text for stories, notices and object details. It does not globally enlarge the dense gameplay HUD. Fullscreen and comfort settings remain available.
+- **Recovery:** three rotating SQLite backups are made on launch and clean close. Close the game, run RESTORE_SAVE.bat and select a backup to restore. Recovery validates the backup and preserves previous database files in a dated folder. This cannot recover progress that was never saved. Crash reports now include version, time and platform information.
+- **Windows build gate:** BUILD_WINDOWS.bat now runs the test suite before packaging. The GitHub Actions workflow also tests, builds and checks assets on Windows when you run it in your repository. No native Windows executable is included in this source ZIP; native Windows and physical-controller testing remain pending.
+
+## New in v4.1
+
+- Fixed the crash when inspecting a restored sanctuary garden. All five gardens are checked through mouse, keyboard and simulated controller input, both before and after restoration.
+- Fifteen illustrated story panels across the five biomes, with layered landscapes, trees, stepping stones, ruins and a starry highland. Advance or revisit scenes at your own pace, or choose Begin chapter immediately.
+- Restored gardens now offer a Story memories button. Revisit their scenes without changing your active run, save, progress or shiny rolls.
+- Added fixed garden texture, orchard trees and cottage roof details. Comfort mode holds every story frame still; gentle local character/leaf motion is available when comfort mode is off.
+- Existing v4.0 saves and run-only shiny appearances are preserved. This is a graphics/story update; it does not change maze rules or difficulty.
+
+![Illustrated story](previews/story.png)
 
 ## Start on Windows
 
@@ -213,4 +247,4 @@ For a machine without a display/audio device, set `SDL_VIDEODRIVER=dummy` and `S
 
 Audio is already included. Rebuild original base effects with `python audio.py`, biome music with `python compose.py`, and the new warning/rescue/pursuit sounds with `python compose_expansion.py`.
 
-Source layout: `home_progress.py` contains rare-roll and restoration rules; `sanctuary.py` draws the home and story; `biome_art.py` draws the new landmarks. `model.py` contains the original rules and persistence; `expedition.py` extends them; `biome_rules.py` and `biome_ui.py` add v3.1 terrain; `controls.py` handles keyboard/gamepad input; `main.py` runs the app; `adventure_ui.py` contains the new screens and illustrations; `art.py` and `world.py` draw the sprites and scenery. `launch.py` is the desktop launcher.
+Source layout: `home_progress.py` contains rare-roll and restoration rules; `sanctuary.py` draws the home and story; `story_art.py` renders the illustrated landscapes; `biome_art.py` draws the new landmarks. `model.py` contains the original rules and persistence; `expedition.py` extends them; `biome_rules.py` and `biome_ui.py` add v3.1 terrain; `controls.py` handles keyboard/gamepad input; `main.py` runs the app; `adventure_ui.py` contains the new screens and illustrations; `art.py` and `world.py` draw the sprites and scenery. `launch.py` is the desktop launcher.

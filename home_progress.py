@@ -37,4 +37,8 @@ def decorations(progress):
     if progress['restored']: result.append('Lanterns')
     if progress['rescued']>=3: result.append('Flowers')
     if len(progress['restored'])>=5: result.append('Fountain')
+    care=progress.get('care',{})
+    friendship=sum(care.get('friends',{}).values())
+    if care.get('harvests',0)>=1 and friendship>=3: result.append('Picnic')
+    if care.get('harvests',0)>=5 and friendship>=5: result.append('Blossom arch')
     return result

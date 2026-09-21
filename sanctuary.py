@@ -1,9 +1,11 @@
 """A calm, walkable home garden and five original story chapters."""
 import math
+from typing import NamedTuple
 import pygame
 from art import applin, leaf, seed
 from biome_art import landmark
 from biome_ui import KINDS
+from story_art import draw_scene, tree
 from home_progress import home_progress, decorations
 from model import TIERS
 
@@ -11,6 +13,12 @@ TEXT=(244,239,217)
 MUTED=(167,190,175)
 GOLD=(246,205,124)
 GREEN=(178,225,159)
+class Chapter(NamedTuple):
+    title: str
+    lines: tuple
+    goal: str
+
+
 CHAPTERS=(
     ('The scattered light',
      ('A night wind scattered the sanctuary\'s sun seeds across the orchard.',
@@ -38,6 +46,7 @@ CHAPTERS=(
       'Ride the wind, gather the last light, and return to the waiting garden.'),
      'Restore the star garden. The sanctuary is ready to welcome everyone home.'),
 )
+CHAPTERS=tuple(Chapter(*entry) for entry in CHAPTERS)
 PLOTS=((160,310),(535,290),(739,399),(190,574),(672,593))
 RESIDENTS=((365,445),(420,470),(475,447),(365,540),(440,555),(505,545),(320,620),(390,645),(465,636),(534,615))
 
@@ -57,6 +66,9 @@ class SanctuaryUI:
         self.story_mode=False
         self.story_chapter=0
         self.story_next=False
+        self.story_page=0
+        self.story_replay=False
+        self.home_selected=None
         self.home_pos=[443.,657.]
         self.home_direction=(0,-1)
         self.home_notice='A quiet place to return to. Explore the garden and talk to your rescued Budew.'
@@ -75,15 +87,34 @@ class SanctuaryUI:
             self.return_screen=self.screen
             self.story_chapter=0
             self.story_next=False
+            self.story_page=0
+            self.story_replay=False
+            self.screen='story'
+        elif action in ('story_forward','story_previous'):
+            self.story_page=max(0,min(2,self.story_page+(1 if action=='story_forward' else -1)))
+        elif action.startswith('memory:'):
+            i=self.garden_index(action)
+            if i is None or i not in home_progress(self.store)['restored']: return True
+            self.navigation.append((self.screen,self.return_screen))
+            self.return_screen=self.screen
+            self.story_chapter=i
+            self.story_page=0
+            self.story_replay=True
             self.screen='story'
         elif action=='story_begin':
+            if self.story_replay: return True
             carry=self.game.shiny[:] if self.story_next and self.game else None
             self.story_mode=True
             if not self.story_next: self.campaign_results=[]
             self.start(self.story_chapter,'campaign',shiny_state=carry)
         elif action=='next' and self.story_mode and self.game and self.game.mode=='campaign':
             self.skill,self.ability,self.coop=self.game.skill,self.game.ability,self.game.coop
+            if self.game.tier>=len(CHAPTERS)-1:
+                self.action('sanctuary')
+                return True
             self.story_chapter=self.game.tier+1
+            self.story_page=0
+            self.story_replay=False
             self.story_next=True
             self.navigation.append((self.screen,self.return_screen))
             self.return_screen=self.screen
@@ -94,10 +125,19 @@ class SanctuaryUI:
             self.home_decor=choices[(idx+1)%len(choices)]
             self.store.set('home_decor_v4',self.home_decor)
         elif action.startswith('home_plot:'):
-            i=int(action.split(':')[1]); progress=home_progress(self.store)
-            self.home_notice=TIERS[i].biome+(': restored. '+CHAPTERS[i][3] if i in progress['restored'] else ': clear this biome to restore its garden.')
+            i=self.garden_index(action)
+            if i is None: return True
+            self.home_selected=i
+            progress=home_progress(self.store)
+            self.home_notice=TIERS[i].biome+(': restored. '+CHAPTERS[i].goal if i in progress['restored'] else ': clear this biome to restore its garden.')
         else: return False
         return True
+
+    @staticmethod
+    def garden_index(action):
+        try: i=int(action.split(':',1)[1])
+        except (ValueError,IndexError): return None
+        return i if 0<=i<len(CHAPTERS) else None
 
     def home_interact(self):
         progress=home_progress(self.store); x,y=self.home_pos
@@ -107,7 +147,8 @@ class SanctuaryUI:
             lines=('Budew: The garden feels warmer with every seed you bring home.',
                    'Budew: Thank you for finding us. There is room for everyone here.',
                    'Budew: I like the quiet pond. The birds cannot chase us here.')
-            self.home_notice=lines[residents.index(nearby[0])%len(lines)]
+            from home_activities import care_action
+            self.home_notice=care_action(self.store,'chat',residents.index(nearby[0]))
         else:
             nearest=min(range(5),key=lambda i:math.hypot(PLOTS[i][0]-x,PLOTS[i][1]-y))
             if math.hypot(PLOTS[nearest][0]-x,PLOTS[nearest][1]-y)<150:
@@ -126,24 +167,37 @@ class SanctuaryUI:
                 self.home_pos=[x,y]
 
     def draw_story(self):
-        title,lines,goal=CHAPTERS[self.story_chapter]
-        self.header(f'Chapter {self.story_chapter+1}: {title}', TIERS[self.story_chapter].biome+' / An original story for this fan game')
-        self.panel((44,151,1190,551),(29,48,43),24)
-        self.canvas.blit(landmark(KINDS[self.story_chapter],170),(84,203))
-        self.canvas.blit(applin(126),(108,446))
-        for i,line in enumerate(lines): self.text(line,(307,213+i*52),20,TEXT)
-        pygame.draw.line(self.canvas,(85,114,86),(306,403),(1190,403),1)
-        self.text('THIS CHAPTER',(307,442),13,GREEN,bold=True)
-        self.text(goal,(307,476),18,GOLD)
-        self.text('All abilities and comfort settings remain available. Story passages wait for you.',(307,538),15,MUTED)
-        self.text('Save during play and continue later; the expedition and its colour rolls stay together.',(307,574),15,MUTED)
-        self.button('Begin chapter',(866,745,367,58),'story_begin',True)
-        self.button('Back',(48,752,170,44),'back')
+        chapter=CHAPTERS[self.story_chapter]
+        prefix='Memory' if self.story_replay else 'Chapter'
+        self.header(f'{prefix} {self.story_chapter+1}: {chapter.title}', TIERS[self.story_chapter].biome+' / An original illustrated story')
+        animated=self.characters and not self.comfort
+        phase=self.t if animated else 0
+        hero=None
+        if self.story_next and not self.story_replay and self.game:
+            hero=self.hero_sprite(90,int(phase*3)%4,(1,0))
+        draw_scene(self.canvas,pygame.Rect(48,147,1184,350),self.story_chapter,self.story_page,hero,phase)
+        self.panel((48,512,1184,211),(29,48,43),20)
+        self.text(f'SCENE {self.story_page+1} / 3  ·  '+('The journey' if self.story_page==0 else 'A way through' if self.story_page==1 else 'The way home'),(72,534),14,GREEN,bold=True)
+        y=self.flow_text(chapter.lines[self.story_page],72,575,1120,22,TEXT)
+        self.flow_text(chapter.goal,72,max(620,y+8),1120,17,GOLD)
+        if not self.large_text: self.text('Scenes wait for you. Use the buttons or Tab + Enter / controller navigation.',(72,675),14,MUTED)
+        if self.story_replay:
+            self.button('Return to garden',(894,748,338,52),'back',True)
+        else:
+            self.button('Begin chapter',(894,748,338,52),'story_begin',True)
+        self.button('Back',(48,752,145,44),'back')
+        if self.story_page>0: self.button('Previous scene',(214,752,208,44),'story_previous')
+        if self.story_page<2: self.button('Next scene',(439,752,208,44),'story_forward')
 
     def draw_sanctuary(self):
         progress=home_progress(self.store); restored=progress['restored']; d=pygame.draw
         self.header('A little place called home.', 'Your victories restore this garden. Rescued Budew arrive when you reach a sanctuary.')
+        self.button('Garden & residents',(954,33,278,44),'home_activities',True,small=True)
         self.panel((42,147,842,588),(69,111,74),22)
+        # Pebbles and grass details use fixed coordinates: no moving background.
+        for i in range(135):
+            x=66+(i*137)%793; y=202+(i*79)%491
+            d.line(self.canvas,(87,132,81),(x,y),(x+2,y-4),1)
         # Layered paths, hedges and five distinct garden patches.
         for x in range(62,861,35):
             for y in (176,712):
@@ -167,6 +221,8 @@ class SanctuaryUI:
             self.canvas.blit(landmark(KINDS[i],65),(x-32,y-43))
             self.text(('Restored' if active else 'Waiting')+f' / {i+1}',(x,y+54),13,TEXT,center=True)
             self.buttons.append((pygame.Rect(x-86,y-65,172,132),f'home_plot:{i}'))
+        for x,y in ((87,255),(265,218),(832,282),(80,654),(820,649)):
+            tree(self.canvas,x,y,.62,(60,125,71),0 in restored)
         # Cottage: an original little refuge, not an extracted game asset.
         d.rect(self.canvas,(215,190,137),(325,245,130,89),border_radius=5)
         d.polygon(self.canvas,(127,81,90),[(305,248),(390,193),(475,248)])
@@ -175,6 +231,8 @@ class SanctuaryUI:
         for x in (341,423):
             d.rect(self.canvas,(249,219,133),(x,265,18,21),border_radius=3)
             d.line(self.canvas,(145,109,81),(x+9,265),(x+9,286),2)
+        for y in (217,228,239):
+            d.line(self.canvas,(155,102,100),(390-(y-193)*1.45,y),(390+(y-193)*1.45,y),2)
         self.text('HOME',(390,238),12,TEXT,center=True,bold=True)
         # A pond opens with the wetland garden.
         d.ellipse(self.canvas,(49,94,111) if 1 in restored else (103,109,80),(322,356,116,56))
@@ -194,6 +252,7 @@ class SanctuaryUI:
                 else:
                     d.line(self.canvas,(112,83,60),(x,y+20),(x,y-9),4)
                     d.rect(self.canvas,(246,207,112),(x-6,y-10,12,16),border_radius=4)
+        self.draw_care_decor()
         animated=self.characters and not self.comfort
         for i,pos in enumerate(RESIDENTS[:min(progress['rescued'],len(RESIDENTS))]):
             bob=int(math.sin(self.t*2+i)*1.5) if animated else 0
@@ -205,15 +264,23 @@ class SanctuaryUI:
         self.text(f'{len(restored)} / 5 gardens restored',(923,205),20,TEXT)
         self.text(f'{progress["rescued"]} Budew brought home',(923,243),18,TEXT)
         self.text(f'{len(progress["chapters"])} / 5 story chapters',(923,281),18,TEXT)
-        self.text('DECORATIONS',(923,337),13,GREEN,bold=True)
-        self.button(self.home_decor,(922,367,294,43),'home_decor',small=True)
+        self.text('DECORATIONS',(923,317),13,GREEN,bold=True)
+        self.button(self.home_decor,(922,345,294,43),'home_decor',small=True)
         for i,line in enumerate(('Lanterns: restore one garden.','Flowers: bring three Budew home.','Fountain: restore all five gardens.')):
-            self.text(line,(923,426+i*29),13,MUTED)
+            self.text(line,(923,401+i*23),13,MUTED)
+        if self.home_selected is not None:
+            i=self.home_selected
+            if i in restored:
+                self.button(f'Garden {i+1}: story memories',(922,483,294,43),f'memory:{i}',small=True)
+            else:
+                self.text(f'Garden {i+1} is waiting for its seeds.',(923,491),14,GOLD)
+        else: self.text('Select a garden to inspect it.',(923,491),14,MUTED)
+        self.text('Garden displays are decorative.',(923,466),12,MUTED)
         self.button('Story expedition',(922,543,294,48),'story',True)
         self.button('Adventure setup',(922,604,294,43),'adventure',small=True)
         if self.store.get('active_expedition',None):
             self.button('Continue saved run',(922,663,294,43),'continue',small=True)
-        self.text(self.home_notice,(47,746),14,TEXT)
+        self.flow_text(self.home_notice,47,739,1175,14,TEXT,line_height=18)
         self.button('Back',(48,783,139,37),'back',small=True)
         self.text('Movement keys / left stick: walk     Interact: talk or inspect a garden',(218,794),14,MUTED)
 

@@ -1,2 +1,3 @@
-4.0 - Homeward
-Distinct biome landmarks, illustrated guide, five-chapter story, walkable home sanctuary and rare run-only shiny Applin.
+4.2 - Homeward: Clear Trails
+Interaction inspection, six-part tutorial, tactical pursuit, story endings, co-op signals, readable text, audio levels and save recovery.
+Expanded sanctuary: berry beds, resident album, friendship and decorative milestones.

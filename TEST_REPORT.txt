@@ -1,5 +1,5 @@
-Applin Escape v4.0 Homeward - verification
-Python 3.12.14 / Pygame 2.6.1 / Linux, SDL dummy video and audio.
+Applin Escape v4.2 Clear Trails - verification
+Python 3.12.14 / Pygame 2.6.1 / Linux / SDL dummy audio and video.
 
 test_audio_assets_and_mixer_load (test_app.Interface.test_audio_assets_and_mixer_load) ... ok
 test_complete_campaign_and_result_actions (test_app.Interface.test_complete_campaign_and_result_actions) ... ok
@@ -35,6 +35,11 @@ test_rescue_rewards_and_records_are_separated (test_expedition.ExpeditionRules.t
 test_save_restores_random_state_and_future_chase (test_expedition.ExpeditionRules.test_save_restores_random_state_and_future_chase) ... ok
 test_swoop_warns_then_follows_legal_committed_path (test_expedition.ExpeditionRules.test_swoop_warns_then_follows_legal_committed_path) ... ok
 test_tutorial_teaches_actions_without_health_loss (test_expedition.ExpeditionRules.test_tutorial_teaches_actions_without_health_loss) ... ok
+test_activity_tabs_clicks_pages_back_and_saved_run_unchanged (test_home_activities.HomeActivities.test_activity_tabs_clicks_pages_back_and_saved_run_unchanged) ... ok
+test_decorations_render_and_are_stationary (test_home_activities.HomeActivities.test_decorations_render_and_are_stationary) ... ok
+test_friendship_is_capped_and_unlocks_decor (test_home_activities.HomeActivities.test_friendship_is_capped_and_unlocks_decor) ... ok
+test_garden_lifecycle_and_invalid_actions (test_home_activities.HomeActivities.test_garden_lifecycle_and_invalid_actions) ... ok
+test_no_residents_or_berries_cannot_feed (test_home_activities.HomeActivities.test_no_residents_or_berries_cannot_feed) ... ok
 test_complete_story_carries_shiny_and_restores_home (test_homeward.HomewardFlows.test_complete_story_carries_shiny_and_restores_home) ... ok
 test_fruit_and_bell_controls_really_change_enemy_movement (test_homeward.HomewardFlows.test_fruit_and_bell_controls_really_change_enemy_movement) ... ok
 test_guide_and_home_navigation_and_rendering (test_homeward.HomewardFlows.test_guide_and_home_navigation_and_rendering) ... ok
@@ -74,33 +79,51 @@ test_settings_and_abandon_persist (test_model.Rules.test_settings_and_abandon_pe
 test_symmetry_and_persistent_repeat_rejection (test_model.Rules.test_symmetry_and_persistent_repeat_rejection) ... ok
 test_tracker_ambusher_and_decoy_targets (test_model.Rules.test_tracker_ambusher_and_decoy_targets) ... ok
 test_wall_collision_and_step_count (test_model.Rules.test_wall_collision_and_step_count) ... ok
+test_coop_ping_keyboard_and_expiry_without_changing_positions (test_polish.Polish.test_coop_ping_keyboard_and_expiry_without_changing_positions) ... ok
+test_existing_function_key_binding_takes_priority_over_call (test_polish.Polish.test_existing_function_key_binding_takes_priority_over_call) ... ok
+test_inspecting_every_biome_pauses_and_returns_without_using_it (test_polish.Polish.test_inspecting_every_biome_pauses_and_returns_without_using_it) ... ok
+test_lure_inspection_reports_real_cooldown (test_polish.Polish.test_lure_inspection_reports_real_cooldown) ... ok
+test_nearest_inspection_button_and_controller_back (test_polish.Polish.test_nearest_inspection_button_and_controller_back) ... ok
+test_personal_best_comparison_captures_prior_record (test_polish.Polish.test_personal_best_comparison_captures_prior_record) ... ok
+test_pose_changes_and_comfort_restores_static_sprite (test_polish.Polish.test_pose_changes_and_comfort_restores_static_sprite) ... ok
+test_reading_volume_and_new_screens_persist (test_polish.Polish.test_reading_volume_and_new_screens_persist) ... ok
+test_tactical_rules_are_versioned_and_replay_keeps_legacy (test_polish.Polish.test_tactical_rules_are_versioned_and_replay_keeps_legacy) ... ok
+test_tutorial_includes_distraction_and_refills_escapes (test_polish.Polish.test_tutorial_includes_distraction_and_refills_escapes) ... ok
+test_backup_restore_preserves_progress_and_previous_files (test_polish.Recovery.test_backup_restore_preserves_progress_and_previous_files) ... ok
+test_bad_backup_is_rejected_without_changing_current_save (test_polish.Recovery.test_bad_backup_is_rejected_without_changing_current_save) ... ok
 test_every_stage_starts_full_map (test_skyward.SkywardTests.test_every_stage_starts_full_map) ... ok
 test_flight_animation_does_not_change_path_positions (test_skyward.SkywardTests.test_flight_animation_does_not_change_path_positions) ... ok
 test_rebalanced_difficulty_all_five_stages (test_skyward.SkywardTests.test_rebalanced_difficulty_all_five_stages) ... ok
+test_all_fifteen_scenes_render_and_comfort_is_static (test_story_scenes.StoryScenes.test_all_fifteen_scenes_render_and_comfort_is_static) ... ok
+test_all_gardens_mouse_click_restored_and_waiting (test_story_scenes.StoryScenes.test_all_gardens_mouse_click_restored_and_waiting) ... ok
+test_invalid_garden_indices_are_ignored (test_story_scenes.StoryScenes.test_invalid_garden_indices_are_ignored) ... ok
+test_locked_memory_and_last_chapter_next_are_safe (test_story_scenes.StoryScenes.test_locked_memory_and_last_chapter_next_are_safe) ... ok
+test_memories_do_not_change_saved_run_or_roll_shiny (test_story_scenes.StoryScenes.test_memories_do_not_change_saved_run_or_roll_shiny) ... ok
+test_restored_gardens_keyboard_and_controller_interaction (test_story_scenes.StoryScenes.test_restored_gardens_keyboard_and_controller_interaction) ... ok
 test_pickups_have_distinct_silhouettes_and_colours (test_sunseed.SunseedTests.test_pickups_have_distinct_silhouettes_and_colours) ... ok
 test_shrine_opens_gradually_and_pauses (test_sunseed.SunseedTests.test_shrine_opens_gradually_and_pauses) ... ok
 
 ----------------------------------------------------------------------
-Ran 78 tests in 11.192s
+Ran 101 tests in 18.190s
 
 OK
 
-PyInstaller 6.16.0 built the Linux application successfully.
-Frozen app --preview build-preview-v4 --verify-build exited successfully.
-Bundled audio, five danger tracks, biome effects and controller imports loaded.
+Verified: original sanctuary crash regression; all five biome interactions; tutorial
+fruit distraction; versioned AE42 interception with legacy replay preservation;
+object inspection and pause navigation; co-op calls and existing key binding priority;
+wrapped reading settings and independent audio levels; chapter endings; previous-best
+comparisons; consistent SQLite backup restoration and rejection of damaged backups.
 
-Integration checks exercised actual input dispatch and game updates:
-- Fruit lures and bells redirect predator movement.
-- Tide waits for occupants before closing; gates swap walkable routes safely.
-- Wind rides move Applin, collect pickups and preserve escape charges.
-- Independent shiny rolls allow neither, either or both co-op players.
-- Shiny flags survive save/continue and chapter transitions; new runs reroll.
-- Shiny colour is absent from selectable Apple styles.
-- All five story chapters complete and credit sanctuary progress exactly once.
-- Landmark silhouette/contrast checks cover every biome path palette.
+Sanctuary checks: planting/watering/harvesting; invalid actions; no negative berry
+inventory; capped friendship; picnic and arch unlocks; resident pagination; mouse
+interaction; navigation; stationary comfort rendering; active-run/shiny preservation.
 
-Visual review: illustrated guide, story, restored sanctuary, shiny co-op preview,
-and full-map windy biome. Source preview shows a controlled shiny example only.
-Physical controllers and native Windows execution have not been tested here.
-The download includes Python source, assets and Windows launch/build scripts;
-it does not include a Windows executable.
+PyInstaller 6.16.0 Linux build succeeded. Frozen preview --verify-build exited 0,
+including the new home activities and accessibility screens. Audio and controller
+imports loaded in the bundle.
+Visual review: large-text object details, story and ending, results, accessibility,
+berry garden, resident album and home milestones.
+
+Native Windows execution, physical controllers and subjective difficulty balancing
+remain pending. WINDOWS_PLAYTEST.md lists native checks. The ZIP contains source,
+assets and Windows launch/build/recovery scripts, not a Windows executable.

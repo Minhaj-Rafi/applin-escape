@@ -20,6 +20,8 @@ from adventure_ui import ExpeditionUI
 from controls import ControlUI
 from biome_ui import BiomeUI
 from sanctuary import SanctuaryUI
+from polish_ui import PolishUI
+from home_activities import HomeActivitiesUI
 from art import Sprites, seed, berry, heart, leaf
 from audio import Audio
 from world import World, TILE
@@ -36,14 +38,14 @@ GOLD = (247, 203, 118)
 RED = (239, 143, 133)
 
 
-class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
+class App(HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
     def __init__(self, save_dir=None):
         pygame.mixer.pre_init(22050, -16, 1, 512)
         pygame.init()
         info = pygame.display.Info()
         self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
         self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
-        pygame.display.set_caption('Applin Escape | Homeward 4.0')
+        pygame.display.set_caption('Applin Escape | Homeward 4.2')
         self.canvas = pygame.Surface((W, H))
         self.store = Store(save_dir)
         self.init_adventure()
@@ -78,6 +80,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
         self.cached_summary = self.store.summary()
         self.board = None
         self.overview = True
+        self.init_polish()
         self.draw()
 
     def font(self, size, serif=False, bold=False):
@@ -132,6 +135,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
                     who='Both players are' if all(self.game.shiny) else 'Player 2 is' if self.game.shiny[1] else 'Applin is'
                     self.game.notify(who+' shiny! This rare green colour lasts for this run.')
             self.navigation.clear()
+            self.pings={}
             self.render_revision = self.game.board_revision
             self.visual_partner = list(map(float, self.game.partner['pos']))
             self.partner_timer = .2
@@ -204,6 +208,8 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
     def action(self, action):
         self.audio.play('click')
         self.focus = -1
+        if self.activities_action(action): return
+        if self.polish_action(action): return
         if self.sanctuary_action(action): return
         if self.controls_action(action): return
         if self.extra_action(action): return
@@ -305,7 +311,9 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
                 if self.screen == 'challenge':
                     self.challenge_key(event)
                     continue
-                if event.key == pygame.K_F11:
+                if event.key in (pygame.K_F3,pygame.K_F4) and self.screen=='play' and self.game.coop and event.key not in [key for row in self.controls.keys for key in row]:
+                    self.action('ping:'+str(int(event.key==pygame.K_F4)))
+                elif event.key == pygame.K_F11:
                     self.action('fullscreen')
                 elif event.key == pygame.K_m:
                     self.action('music')
@@ -320,7 +328,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
                 elif event.key == pygame.K_ESCAPE:
                     if self.screen == 'play': self.action('pause')
                     elif self.screen == 'paused': self.action('resume')
-                    elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide'):
+                    elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities'):
                         self.action('back')
                 elif self.screen == 'menu' and pygame.K_1 <= event.key <= pygame.K_5:
                     self.selected = event.key-pygame.K_1
@@ -473,7 +481,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
         self.text(tier.biome, (28, 47), 33, TEXT, serif=True)
         self.text(f'{g.mode.upper()} / STAGE {g.tier+1:02d} / {g.skill.upper()} / '+('DUO' if g.coop else 'SOLO'), (31, 101), 13, tier.color, bold=True)
         self.button('Pause  [P]', (1090,  30, 159, 43), 'pause', small=True)
-        self.text('Keyboard / gamepad', (827,42),15,MUTED)
+        if not g.coop: self.text('Click landmarks to inspect', (827,42),14,MUTED)
         self.panel((20, 139, 900, 636), (19, 33, 33), 16)
         self.camera()
         self.canvas.set_clip((30,150,880,610))
@@ -507,6 +515,8 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
             flight_frame=(frame+index*2)%8 if self.characters and not self.comfort else 0
             if e.stunned>0:flight_frame=0
             sprite=self.bird_sprite(e,size,flight_frame)
+            if self.characters and not self.comfort and e.mood=='swoop':
+                sprite=pygame.transform.smoothscale(pygame.transform.rotate(sprite,-14*(e.direction[0] or 1)),(size,size))
             height=0 if e.stunned>0 else max(2,self.cell//8)
             if self.characters and not self.comfort and e.mood=='search': height+=int(math.sin(g.elapsed*3)*2)
             self.canvas.blit(sprite,(x-size//2,y-size//2-height))
@@ -539,6 +549,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
         for x, y, vx, vy, life, color in self.particles:
             leaf(self.canvas, (int(x), int(y)), max(1, life*6), color, self.t*3)
         self.draw_exit_marker()
+        self.draw_polish_world()
         self.canvas.set_clip(None)
         self.panel((940, 139, 310, 636), radius=16)
         shiny_label='SHINY: P1 + P2' if all(g.shiny) else 'SHINY: P2' if g.shiny[1] else 'SHINY APPLIN' if g.shiny[0] else 'KEEP APPLIN SAFE'
@@ -582,7 +593,8 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
         self.draw_biome_badge()
         self.buttons.append((pygame.Rect(610,91,620,43),'biome_guide'))
         notice = g.notice if g.notice_time > 0 else self.interaction_hint()
-        self.text(notice, (30, 793), 16, GREEN if g.notice_time > 0 else MUTED)
+        self.flow_text(notice,30,788,1210,16,GREEN if g.notice_time>0 else MUTED)
+        self.draw_polish_hud()
 
     def predator_statuses(self):
         return [(enemy, 'STUNNED' if enemy.stunned>0 else 'DECOY' if self.game.decoy_time>0 else
@@ -675,6 +687,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
             self.text(label, (65, y+5), 20, TEXT)
             self.text(caption, (65, y+31), 13, MUTED)
             self.button('ON' if value else 'OFF', (1074, y+7, 132, 42), action, value)
+        self.button('Sound / readable text',(275,764,294,44),'accessibility',small=True)
         self.button('Controls / gamepads',(947,764,285,44),'controls',small=True)
         self.text('Audio ready' if self.audio.available else 'Audio unavailable on this device; the game remains playable.', (49, 704), 16, MUTED)
         self.button('Back', (48, 766, 170, 44), 'back', True)
@@ -726,6 +739,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
             self.button('Save & return to menu', (373, 522, 534, 47), 'save_menu')
             self.button('Share challenge', (373,581,257,43), 'copy_code',small=True)
             self.button('Abandon attempt', (650,581,257,43), 'end',small=True)
+            self.button('Inspect nearest landmark',(373,633,534,27),'inspect_nearest',small=True)
             self.text('Progress also saves every 3 seconds and when you close.', (640,665),15,MUTED,center=True)
         else:
             g = self.game
@@ -734,7 +748,7 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
             self.canvas.blit(self.hero_sprite(98,0,g.direction) if won else self.sprites.get('cramorant',98,0),(591,143))
             title = 'Home at last.' if campaign_done else 'Sanctuary reached.' if won else 'The flock found you.'
             self.text(title, (640, 268), 38, GREEN if won else GOLD, serif=True, center=True)
-            self.text('Five stages. One brave little apple.' if campaign_done else 'A fresh maze awaits your next attempt.',
+            self.text(f'Seeds {g.config.seeds-len(g.seeds)}/{g.config.seeds} / Budew {g.rescued}/2 / Berries {getattr(g,"berries_collected",0)}',
                       (640, 319), 17, MUTED, center=True)
             stats = [(f'{g.elapsed:.1f}s', 'TIME'), (g.steps, 'STEPS'), (g.escapes_used, 'ESCAPES'), (f'{g.score:,}', 'SCORE')]
             for i, (value, label) in enumerate(stats):
@@ -754,7 +768,8 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
             if action != 'menu':
                 self.button('Return to menu', (373, 589, 534, 47), 'menu')
             self.button('Share challenge',(373,650,257,40),'copy_code',small=True)
-            self.button('Collection journal',(650,650,257,40),'journal',small=True)
+            self.button('Chapter ending' if won else 'Collection journal',(650,650,257,40),'ending' if won else 'journal',small=True)
+            self.text(self.result_comparison(),(640,493),12,MUTED,center=True)
 
     def draw(self):
         self.canvas.fill(BG)
@@ -771,6 +786,10 @@ class App(SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
             self.draw_settings()
         elif self.screen == 'records':
             self.draw_records()
+        elif self.screen == 'home_activities': self.draw_home_activities()
+        elif self.screen == 'accessibility': self.draw_accessibility()
+        elif self.screen == 'object_info': self.draw_object_info()
+        elif self.screen == 'ending': self.draw_ending()
         elif self.screen == 'sanctuary':
             self.draw_sanctuary()
         elif self.screen == 'story':
@@ -839,7 +858,7 @@ def main():
                 app.draw()
                 pygame.image.save(app.canvas, str(folder/f'tier_{tier+1}.png'))
                 app.game.abandon()
-            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story'):
+            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story','accessibility','home_activities'):
                 app.screen=screen
                 app.draw()
                 pygame.image.save(app.canvas,str(folder/f'{screen}.png'))

@@ -18,6 +18,9 @@ DETAILS=(
 class BiomeUI:
     def interaction_hint(self):
         g=self.game; key=self.controls.key_name(0,5)
+        if hasattr(self,'inspect_targets'):
+            nearby=[p for p in self.inspect_targets() if sum(abs(a-b) for a,b in zip(g.player,p))<=1]
+            if nearby: return LABELS[g.tier]+': '+self.object_status(nearby[0])
         return f'{key}: interact / ledge   |   '+(BIOME_RULES[g.tier][1] if g.rules_version>=31 else 'Legacy challenge: original v3.0 terrain rules.')
 
     def draw_biome_badge(self):
