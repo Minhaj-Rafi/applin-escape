@@ -28,6 +28,8 @@ class World:
         self.water_cells = []
         self.grass_cells = set()
         self.lamps = []
+        from journey47 import clearings
+        self.clearing_centers=clearings(game)
         self.build()
 
     def channel(self, x, y):
@@ -74,6 +76,18 @@ class World:
                 for px in (rect.x+3,rect.x+25):
                     for py in (rect.y+3,rect.y+25):
                         pygame.draw.rect(target,brighten(p['path'],-17),(px,py,19,19),1,border_radius=3)
+            center=next((c for c in self.clearing_centers if abs(c[0]-x)<=1 and abs(c[1]-y)<=1),None)
+            if center:
+                shade=brighten(p['path'],-24)
+                # Orchard stepping stones, wetland boardwalk planks, shrine/ruin courtyards, highland rings.
+                if self.game.tier==0:
+                    pygame.draw.ellipse(target,shade,(rect.x+8,rect.y+17,32,15),2)
+                elif self.game.tier==1:
+                    for yy in (10,23,36): pygame.draw.line(target,shade,(rect.x+4,rect.y+yy),(rect.right-4,rect.y+yy),2)
+                elif self.game.tier in (2,3):
+                    pygame.draw.rect(target,shade,rect.inflate(-10,-10),2,border_radius=5)
+                else:
+                    pygame.draw.circle(target,shade,rect.center,15,2)
         elif kind == 'grass':
             self.grass_cells.add((x,y))
             for gy in (10,24,38):

@@ -71,9 +71,9 @@ def landscape(tier,page):
         for x,y,sc in ((75,203,1.5),(225,231,1.2),(368,206,.9),(924,225,1.3),(1107,196,1.7)):
             tree(s,x,y,sc,color,tier==0)
     # The landmark and small narrative details change with each player-paced panel.
-    s.blit(landmark(KINDS[tier],122),(785,217))
+    if page!=3: s.blit(landmark(KINDS[tier],100),(810,233))
     if page==0:
-        for x,y in ((450,278),(535,257),(665,287)): seed(s,(x,y),10,0)
+        for x,y in ((450,278),(535,257),(758,295)): seed(s,(x,y),10,0)
     elif page==1:
         s.blit(landmark(KINDS[tier],63),(321,275))
         for x in (453,506,559): d.ellipse(s,(229,216,167),(x,294,23,9))
@@ -87,16 +87,30 @@ def landscape(tier,page):
     return s
 
 
+def flying_bird(size=68,phase=0):
+    # Side-on flight silhouette: tucked feet, horizontal body and hinged wings.
+    s=pygame.Surface((120,78),pygame.SRCALPHA); d=pygame.draw
+    wing=int(math.sin(phase*5)*15)
+    d.polygon(s,(38,88,132),[(42,43),(69,23+wing),(96,26+wing),(63,49)])
+    d.polygon(s,(33,75,117),[(73,50),(113,55),(91,42)])
+    d.ellipse(s,(62,129,176),(37,35,56,27))
+    d.ellipse(s,(83,153,194),(28,22,24,35))
+    d.circle(s,(70,141,186),(31,22),15)
+    d.polygon(s,(239,189,80),[(20,21),(2,28),(23,30)])
+    d.circle(s,(244,238,203),(26,20),4); d.circle(s,(25,44,48),(25,20),2)
+    d.polygon(s,(84,154,195),[(48,43),(69,21-wing),(96,12-wing),(76,46)])
+    return pygame.transform.smoothscale(s,(size,int(size*.65)))
+
+
 def draw_scene(surface,rect,tier,page,hero=None,phase=0):
     frame=landscape(tier,page).copy()
     sprite=hero if hero is not None else applin(90,int(phase*3)%4)
-    walk=int(math.sin(phase*.55)*18) if phase else 0
-    frame.blit(sprite,(545+page*35+walk,248))
+    walk=0
+    frame.blit(sprite,sprite.get_rect(midbottom=(650,330)))
     if phase:
         # Local wingbeats and water ripples; the landscape and camera remain fixed.
-        from art import cramorant
-        bird=cramorant(56,int(phase*5)%8,-1)
-        frame.blit(bird,(970+int(math.sin(phase*.8)*12),105+int(math.sin(phase*2)*3)))
+        bird=flying_bird(68,phase)
+        frame.blit(bird,(970+int(math.sin(phase*.8)*12),72+int(math.sin(phase*2)*3)))
         if tier==1:
             for i in range(3):
                 r=12+int((phase*7+i*15)%40)
@@ -106,4 +120,6 @@ def draw_scene(surface,rect,tier,page,hero=None,phase=0):
         for j in range(4):
             x=430+j*104; y=210+int(math.sin(phase*.7+j)*4)
             leaf(frame,(x,y),5,(229,218,152),j*.5)
-    surface.blit(pygame.transform.smoothscale(frame,rect.size),rect)
+    scale=min(rect.width/1184,rect.height/350)
+    size=(round(1184*scale),round(350*scale))
+    surface.blit(pygame.transform.smoothscale(frame,size),pygame.Rect((0,0),size).move(rect.centerx-size[0]//2,rect.centery-size[1]//2))

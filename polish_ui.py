@@ -33,6 +33,8 @@ class PolishUI:
         migrate_crops(care_state(progress))
         self.store.set('sanctuary_v4',progress)
         self.pending_contract=None
+        self.garden_page=0
+        self.reward_domain='maze'
         self.collection_page=0
         self.contract_goal=0
         self.record_offset=0
@@ -180,6 +182,10 @@ class PolishUI:
 
     def draw_polish_hud(self):
         g=self.game
+        if getattr(g,'team_beacons',[]):
+            from team_beacons50 import HOLD_SECONDS
+            label='TEAM: lit / reach shrine' if g.team_complete else f'TEAM: P1 on 1 + P2 on 2 / {g.team_hold:.1f}s of {HOLD_SECONDS:.1f}s'
+            self.text(label,(32,121),12,GOLD)
         if g.coop:
             self.button('P1 call' if pygame.K_F3 in sum(self.controls.keys,[]) else 'P1 [F3]',(826,30,114,43),'ping:0',small=True)
             self.button('P2 call' if pygame.K_F4 in sum(self.controls.keys,[]) else 'P2 [F4]',(950,30,114,43),'ping:1',small=True)
@@ -197,8 +203,24 @@ class PolishUI:
 
     def result_comparison(self):
         g=self.game; old=getattr(g,'previous_best',{})
+        if getattr(g,'team_stamp_new',False):return 'Team beacon stamp earned! See Adventure setup > Team journal.'
+        if g.state=='caught' and getattr(g,'last_capture47',''):
+            return g.last_capture47+' Try a lure or leave the marked route.'
         if getattr(g,'contract',None):
             from challenge_hall import goal_met
             return g.contract+(': mastery earned!' if goal_met(g) else ': goal not met this run. Try another route.')
         if not old: return 'First clear in this rules category.' if g.state=='cleared' else 'Use the warnings and distractions to plan your next route.'
         return f'Compared with prior best: {g.elapsed-old["seconds"]:+.1f}s / {g.steps-old["steps"]:+d} steps (lower is better).'
+
+    def draw_team_beacons50(self):
+        g=self.game
+        for i,pos in enumerate(getattr(g,'team_beacons',[])):
+            x,y=self.center(pos);r=max(8,self.cell//3)
+            color=(248,208,113) if i==0 else (151,218,246)
+            # Numbered geometric pedestals stay distinct without relying on colour.
+            pygame.draw.rect(self.canvas,(24,39,54),(x-r-2,y-r-2,r*2+4,r*2+4),border_radius=4)
+            pygame.draw.rect(self.canvas,color,(x-r,y-r,r*2,r*2),2,border_radius=3)
+            if g.team_complete:pygame.draw.circle(self.canvas,(179,230,159),(x+r,y-r),3)
+            self.text(str(i+1),(x,y),max(10,r+1),color,center=True,bold=True)
+            hit=pygame.Rect(x-r-2,y-r-2,r*2+4,r*2+4).clip(pygame.Rect(30,150,880,610))
+            if hit.width and hit.height:self.buttons.append((hit,'team_journal'))

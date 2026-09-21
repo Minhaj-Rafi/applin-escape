@@ -21,12 +21,18 @@ def home_progress(store):
 
 
 def credit_home(game):
-    if game.mode=='tutorial' or game.state!='cleared': return
+    if game.mode.split('/')[0]=='tutorial' or game.state!='cleared': return
     progress=home_progress(game.store)
     if game.stage_id in progress['receipts']: return
     progress['receipts'].append(game.stage_id)
     progress['restored']=sorted(set(progress['restored'])|{game.tier})
     progress['rescued']+=game.rescued
+    if game.rescued:
+        mastery=progress.setdefault('rescue_mastery46',{})
+        mastery['biomes']=sorted(set(mastery.get('biomes',[]))|{game.tier})
+        if game.rescued>=2 and getattr(game,'skill','')=='Expert': mastery['expert']=mastery.get('expert',0)+1
+        if game.rescued>=2 and game.tier>=3 and getattr(game,'skill','') in ('Standard','Expert') and game.hits==0:
+            mastery['careful']=mastery.get('careful',0)+1
     if getattr(game,'story_run',False):
         progress['chapters']=sorted(set(progress['chapters'])|{game.tier})
     game.store.set('sanctuary_v4',progress)
@@ -41,4 +47,8 @@ def decorations(progress):
     friendship=sum(care.get('friends',{}).values())
     if care.get('harvests',0)>=1 and friendship>=3: result.append('Picnic')
     if care.get('harvests',0)>=5 and friendship>=5: result.append('Blossom arch')
+    from home_mastery46 import home_milestones
+    goals=home_milestones(progress)
+    for index,name in ((9,'Market stall'),(10,'Welcome gazebo'),(15,'Sanctuary monument')):
+        if goals[index][1]: result.append(name)
     return result

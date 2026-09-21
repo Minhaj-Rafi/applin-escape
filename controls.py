@@ -1,4 +1,5 @@
 """Saved keyboard bindings and SDL-mapped gamepads; no device-specific button guesses."""
+import os
 import pygame
 from model import DIRS
 try:
@@ -35,10 +36,25 @@ class Controls:
             self.pad_buttons=[pygame.CONTROLLER_BUTTON_A,pygame.CONTROLLER_BUTTON_X]
         self.pads={}
         self.enabled=False
+        from event_safety import configure_events
+        configure_events()
+        if os.environ.get("APPLIN_KEYBOARD_ONLY")=="1":
+            self.disable_gamepads()
+            return
         if sdl_controller:
             try:
                 sdl_controller.init(); self.enabled=True; self.refresh()
             except pygame.error: pass
+
+    def disable_gamepads(self):
+        from event_safety import RAW_JOYSTICK_EVENTS,CONTROLLER_EVENTS
+        pygame.event.set_blocked(RAW_JOYSTICK_EVENTS+CONTROLLER_EVENTS)
+        self.close()
+        self.enabled=False
+        if sdl_controller:
+            try: sdl_controller.quit()
+            except pygame.error: pass
+        pygame.joystick.quit()
 
     @staticmethod
     def reserved_buttons():
@@ -210,7 +226,7 @@ class ControlUI:
         elif event.button==pygame.CONTROLLER_BUTTON_START and self.screen=='paused': self.action('resume')
         elif event.button==pygame.CONTROLLER_BUTTON_B:
             if self.screen=='paused': self.action('resume')
-            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','records','contract_collection'): self.action('back')
+            elif self.screen in ('adventure','controls','journal','settings','help','records','challenge','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','records','contract_collection','garden_collection','reward_room','completion_film','run_insights','support','team_journal'): self.action('back')
         elif event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT,
                                pygame.CONTROLLER_BUTTON_DPAD_UP,pygame.CONTROLLER_BUTTON_DPAD_LEFT):
             step=1 if event.button in (pygame.CONTROLLER_BUTTON_DPAD_DOWN,pygame.CONTROLLER_BUTTON_DPAD_RIGHT) else -1

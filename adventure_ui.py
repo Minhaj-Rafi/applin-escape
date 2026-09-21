@@ -63,7 +63,7 @@ class ExpeditionUI:
 
     def extra_action(self, action):
         if action == 'back': self.binding=None
-        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','records','contract_collection'):
+        if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','records','contract_collection','garden_collection','reward_room','completion_film','run_insights','support','team_journal'):
             self.screen, self.return_screen = self.navigation.pop()
         elif action in ('adventure', 'journal', 'challenge'):
             self.navigation.append((self.screen, self.return_screen))
@@ -160,6 +160,7 @@ class ExpeditionUI:
         self.button('Challenge code',(914,636,317,52),'challenge')
         self.button('Back',(48,766,170,44),'back')
         self.button('Collection journal',(247,766,240,44),'journal')
+        self.button('Team journal',(513,766,266,44),'team_journal')
         if self.store.get('active_expedition',None):
             self.button('Continue saved game',(919,766,312,44),'continue',True)
 

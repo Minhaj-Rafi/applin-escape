@@ -37,6 +37,9 @@ def crop_action(care,action,index,kind=0,now=None):
         name=BERRIES[crop['kind']][0]; care['berries']+=2; care['harvests']+=1
         care['berry_types'][name]=care['berry_types'].get(name,0)+2
         if name not in care['grown_types']: care['grown_types'].append(name)
+        counters=care.setdefault('harvest_methods44',{}).setdefault(name,{})
+        for method in ('Any harvest','Watered' if crop['watered'] else 'Natural'):
+            counters[method]=counters.get(method,0)+1
         crops[index]=None; message=f'Two {name} berries harvested.'
     elif crop:
         seconds=max(0,int(crop['ready_at']-now+.999))

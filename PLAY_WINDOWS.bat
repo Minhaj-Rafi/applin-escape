@@ -4,7 +4,7 @@ cd /d "%~dp0"
 title Applin Escape
 
 echo.
-echo   APPLIN ESCAPE - HOMEWARD 4.3
+echo   APPLIN ESCAPE - HOMEWARD 5.0
 echo   First launch sets up a private Python environment.
 echo.
 
@@ -26,6 +26,12 @@ if errorlevel 1 (
     echo Installing Pygame. Internet is needed only for this first setup.
     ".venv\Scripts\python.exe" -m pip install -r requirements.txt
     if errorlevel 1 goto setup_failed
+)
+
+if "%~1"=="--check" (
+    ".venv\Scripts\python.exe" support49.py
+    pause
+    exit /b
 )
 
 ".venv\Scripts\python.exe" launch.py

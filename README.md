@@ -1,12 +1,196 @@
-# Applin Escape — Homeward (v4.3)
+# Applin Escape v5.0 — Better Together
+
+New optional paired beacons appear in fresh modern co-op runs (AE42 rules).
+P1 stands on the gold pedestal numbered 1; P2 stands on the blue pedestal numbered
+2. Hold both positions for 1.5 seconds of gameplay. Leaving a position or having
+P2 down resets an unfinished hold. Once lit, beacons remain complete for that run.
+Finish at the shrine to bank a permanent team stamp for the biome. All five stamps
+earn the Partner badge shown in Adventure setup > Team journal.
+
+Click a pedestal to pause and read the team instructions. The live header shows
+hold progress. The objective is optional: it never blocks the shrine and grants
+no extra score, escape charges or gameplay upgrades. Base maps, collectibles and
+random-number sequences are unchanged. Spawn selection uses an independent seed.
+If a map cannot provide suitable distinct locations, beacons are omitted.
+
+Old saved expeditions retain their original objectives; new saves preserve beacon
+positions and progress. Solo, tutorial and legacy AE3/AE31 runs have no beacons.
+The existing Windows input recovery, keyboard-only launcher, setup check and
+support-report tools remain available.
+
+Extract into a fresh folder and run PLAY_WINDOWS.bat; confirm HOMEWARD 5.0.
+Actual Windows/controller validation remains outstanding; checks here ran on Linux.
+
+## Previous releases and guide
+
+# Applin Escape v4.9 — Run Insights & Support
+
+Records > Run insights shows personal per-biome results for Standard, Expert or
+Relaxed, separately for solo and co-op. It includes completed attempts, clear rate,
+average successful-clear time and average hits per completed attempt. Tutorials,
+abandoned attempts and older rows lacking difficulty/player details are excluded.
+Runs from different versions, abilities and non-tutorial modes are combined; these
+are descriptive personal totals, not controlled difficulty benchmarks. Guidance
+requires at least five completed attempts in a biome. No automatic difficulty changes.
+
+Settings > Troubleshooting displays version, sound/controller status and a save
+integrity check. Export support report writes exports/support_report.json in the
+save folder. It includes technical status only, without aliases, paths, save data
+or raw crash logs. Nothing is uploaded automatically.
+
+Close the game and run CHECK_SETUP.bat to test window/input startup and render one
+map in each biome. It uses a temporary progress database and writes only a report
+to exports/setup_check.json in your normal save folder. Audio/controller status is
+reported; a pass does not verify physical buttons, speakers or extended gameplay.
+The existing keyboard-only launcher and event error recovery remain included.
+
+Extract into a fresh folder and run PLAY_WINDOWS.bat; confirm HOMEWARD 4.9.
+Your existing save is retained. Native Windows and physical controller playtesting
+remain outstanding; the automated checks here ran under Linux.
+
+## Previous releases and guide
+
+# Applin Escape v4.8 — Residents at Home
+
+Open Garden & residents > Resident album > Meet & requests.
+Each resident has one of five personalities, a stable favourite berry, and rotating
+original dialogue. Share one berry prefers the favourite when available and still
+adds only one friendship heart. At three hearts, ordinary gifts do not spend berries.
+
+Each resident has three saved requests: a greeting, a two-berry favourite picnic,
+and reaching three hearts after harvesting their favourite variety. Complete them
+in order to earn that resident's Home ribbon, displayed in their profile. Requests
+never expire and already-completed requests cannot consume berries again. The
+picnic is a request delivery, separate from ordinary friendship gifts. Ribbons are
+resident profile badges, not gameplay upgrades or shiny-style unlocks.
+
+In the walkable sanctuary, select Preview decorations. Browse all nine decorations,
+including locked rewards, with their requirements. Apply only changes an unlocked
+selection; browsing leaves your current garden unchanged.
+
+All existing progress is retained. Existing greetings, hearts and harvested varieties
+count toward requests; request completions and new dialogue history begin in v4.8.
+The 4.7.1 event-error recovery and PLAY_KEYBOARD_ONLY.bat workaround are included.
+Extract into a fresh folder, launch PLAY_WINDOWS.bat and confirm HOMEWARD 4.8.
+
+## Previous releases and guide
+
+# Applin Escape v4.7.1 — Windows input hotfix
+
+This patch addresses the reported KeyError: 0 followed by SystemError in
+pygame.event.get(). The signature matches upstream Pygame event-conversion reports;
+the exact triggering hardware has not been reproduced here.
+
+The game blocks unused raw joystick events and continues using SDL controller
+input normally. If the specific error still occurs, it switches to keyboard/mouse,
+pauses and saves the active expedition, and displays a notice on the main menu.
+Unrelated or repeated event errors still produce a crash report.
+
+Extract this release into a fresh folder. Run PLAY_WINDOWS.bat normally.
+For an explicit keyboard/mouse-only workaround, run PLAY_KEYBOARD_ONLY.bat.
+Both launchers use the same existing save location. No Python upgrade or save reset
+is required. Verify the launch banner says HOMEWARD 4.7.1.
+
+Upstream report: https://github.com/pygame/pygame/issues/4568
+
+## Earlier releases and game guide
+
+# Applin Escape v4.7 — A Clearer Journey
+
+- Blocked swoops stop and recover rather than stepping outside the warned route.
+  This fixes modern biome rules; legacy AE3 behaviour remains unchanged.
+- Capture results identify the bird and whether it was swooping.
+- Existing open clearings gain subtle biome-specific ground accents. This is a
+  readability pass, not a replacement map generator; movement and shared map
+  layouts are unchanged.
+- Sanctuary square > Sanctuary guide opens four optional, player-paced pages.
+  Close anytime and replay it whenever you like. Illustrations stay still.
+- Garden actions and project deliveries report newly earned achievement counts,
+  home milestones and decoration unlocks in the existing notice area.
+
+Validation: 129 automated tests, including a 50-map sample across five biomes
+checking objective reachability with shortcuts closed and safe spawn distances.
+Native Windows and physical-controller testing still need actual devices.
+Existing saves are preserved. Extract into a fresh folder and run PLAY_WINDOWS.bat;
+the launch banner should show HOMEWARD 4.7.
+
+## Previous releases and guide
+
+# Applin Escape v4.6 — A Thriving Home
+
+Home milestones expand from 4 to 16. Sanctuary achievements expand from 72 to 96,
+with a separate Advanced mastery category. Existing 72 goals and their profile
+rewards keep their original requirements; previous progress is preserved.
+
+New: six repeatable community projects, found under Garden & residents > Projects.
+Projects require specific berry varieties and, later, rescued/happy residents.
+Deliveries spend the listed berries only after all requirements are met. They
+have no deadlines. Three different projects unlock Market stall, all six unlock
+Welcome gazebo, and all 24 advanced goals unlock Sanctuary monument. Choose the
+unlocked decoration in the sanctuary. The celebration acknowledges full mastery.
+
+Advanced goals require balanced harvests across all four varieties, watered and
+natural cultivation, three different ripe beds together, varied project deliveries,
+larger resident communities, and successful rescues in all biomes. Expert rescue
+requires both Budew; careful rescue requires both Budew and zero hits in tier 4 or
+5 on Standard or Expert. Tutorial runs never advance rescue mastery.
+
+Achievement browsing has Gardening, Community and Advanced mastery filters, an
+unfinished-only option, mouse-wheel/Page Up/Page Down support, and row selection
+to pin a goal in Sanctuary square. Growing timers and run-only shiny odds stay as
+before. You never need to leave the game open for crops to grow.
+
+Existing totals count where recorded. New mixed-bed, project and detailed rescue
+tracking begins with v4.6; old saves did not retain these events. No save reset.
+Extract into a fresh folder and launch PLAY_WINDOWS.bat; check HOMEWARD 4.6.
+
+## Previous releases and guide
+
+# Applin Escape v4.5 — Life at Home
+
+This update fixes overlapping main-menu buttons, removes the stretched sanctuary illustration,
+and aligns story characters by their feet. The selected bed's growth message updates live,
+including its transition to ready-to-harvest.
+
+Sanctuary now has 72 stamps: the original 36 gardening stamps plus 36 goals covering Budew
+rescues, distinct residents greeted, happy residents, biome restoration, interaction days,
+best daily streaks, berries shared, berry varieties and combined rescue/gardening/friendship.
+Daily streak milestones are 3, 5, 7 and 14 local calendar days. Planting, watering, harvesting,
+talking and successful berry gifts count as interactions. Opening a menu or leaving it idle
+does not count. Missing a day resets only the current streak; your best remains recorded.
+No need to leave the game running. Crops still grow offline and never spoil.
+
+Existing saves, stamps, Garden crown and its celebration remain available. Home companion
+unlocks at 54 stamps and Sanctuary guardian at all 72, with an expanded celebration message.
+Existing recorded rescues, friendships and restored biomes count immediately. Interaction-day
+and berry-gift tracking begins in v4.5 because earlier saves did not record those histories.
+
+Extract this ZIP into a fresh folder and run applin_escape/PLAY_WINDOWS.bat.
+The launch banner must say HOMEWARD 4.5. Default saves stay in the existing save location.
+
+## Earlier release notes and game guide
+
+# Applin Escape — Homeward (v4.4)
 
 An offline 2D maze adventure built with Python and Pygame. Lead Applin through five outdoor biomes, collect sun seeds, rescue optional Budew, outwit flying pursuers and reach the animated sanctuary. Play alone or with a second player on the same keyboard.
 
-This upgrade builds on v4.2 and preserves the existing gameplay and local history. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
+This upgrade builds on v4.3 and preserves the existing gameplay and local history. Full-map view remains the default. Predator names, chase counts, the seed progress bar, distinct gold seeds and blue berries, original music, and the unlabeled shrine remain.
 
 ![Wetland co-op](previews/tier_2.png)
 
-## New in v4.3: Sanctuary Seasons
+## New in v4.4: Two Journeys
+
+- Sanctuary square now has just **Garden & residents** (the existing nursery, resident and decoration tabs) and **Sanctuary achievements**. Duplicate shortcuts, records/profile and maze contracts are removed from this hub.
+- **Maze challenges** has its own main-menu button. Each of the 960 combinations earns an individual permanent mastery stamp. Collection rows identify earned stamps.
+- Maze reward thresholds are **1, 10, 50, 120, 240 and 960** stamps: Copper trail, Silver trail, Gold trail, Sapphire trail, Star trail and Master crown. Equip a title/frame in Rewards, then export your player card to use it.
+- Sanctuary has **36 separate garden stamps**: four berry varieties × three methods (any harvest, watered, natural/unwatered) × milestones of 1, 3 and 6 harvests. Counts accumulate automatically when harvesting. An any-harvest stamp can overlap a watered/natural stamp. These never advance maze mastery.
+- Sanctuary rewards unlock at **1, 12, 24 and 36** stamps: Seed ribbon, Flower ribbon, Orchard ribbon and Garden crown profile frames/titles.
+- Each complete collection unlocks its own replayable illustrated celebration in its Rewards screen: **The master explorer returns** for maze mastery, and **The garden festival** for sanctuary care. Rewards are cosmetic and never affect shiny odds or gameplay.
+- Cutscenes use an original horizontal flying-bird sprite with hinged wings and no standing feet/shadow. Applin stays planted rather than sliding side to side. Comfort mode remains static.
+
+Existing maze mastery immediately qualifies for the appropriate rewards. Harvest-method history was not recorded before v4.4, so the new garden stamps start counting from this update; crops, inventory, friendship and existing decorations are preserved. Completion-preview images use isolated demonstration progress, not a player-facing unlock shortcut.
+
+## Previous update: v4.3 Sanctuary Seasons
 
 **Home sanctuary → Sanctuary square** organizes six destinations: berry nursery, resident lodge, milestone board, challenge hall, records and player profile. You can also walk to the cottage entrance and press Interact.
 

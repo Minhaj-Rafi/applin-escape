@@ -46,7 +46,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         info = pygame.display.Info()
         self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
         self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
-        pygame.display.set_caption('Applin Escape | Homeward 4.3')
+        pygame.display.set_caption('Applin Escape | Homeward 5.0')
         self.canvas = pygame.Surface((W, H))
         self.store = Store(save_dir)
         self.init_adventure()
@@ -301,7 +301,8 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             self.running = False
 
     def events(self):
-        for event in pygame.event.get():
+        from event_safety import read_events
+        for event in read_events(self):
             if self.chronicle_event(event): continue
             if self.control_event(event): continue
             if event.type == pygame.QUIT:
@@ -334,7 +335,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
                 elif event.key == pygame.K_ESCAPE:
                     if self.screen == 'play': self.action('pause')
                     elif self.screen == 'paused': self.action('resume')
-                    elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','contract_collection'):
+                    elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','contract_collection','garden_collection','reward_room','completion_film','run_insights','support','team_journal'):
                         self.action('back')
                 elif self.screen == 'menu' and pygame.K_1 <= event.key <= pygame.K_5:
                     self.selected = event.key-pygame.K_1
@@ -474,11 +475,13 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             self.text(tier.biome, (x+17, 588), 12, MUTED)
             self.text(f'{tier.enemies} birds  /  {tier.escapes+(2 if self.skill=="Relaxed" else 0)} escapes', (x+17, 615), 14, MUTED)
             self.button('Selected' if i == self.selected else 'Select tier', (x+16, 652, 192, 43), f'tier:{i}', small=True)
+        if getattr(self,'input_notice',''): self.text(self.input_notice,(48,728),12,GOLD)
         count, wins, best = self.cached_summary
-        self.text(f'{count} unique maps explored     /     {wins} stages cleared     /     best {best:,}', (48, 754), 16, MUTED)
-        self.text('v4.0 Homeward / A garden to restore / Rare run-only shiny colours', (48, 796), 12, MUTED)
-        self.button('Home sanctuary',(795,758,302,46),'sanctuary',small=True)
-        self.button('Quit', (1120,763,112,40),'quit',small=True)
+        self.text(f'{count} maps / {wins} clears / best {best:,}', (48, 754), 16, MUTED)
+        self.text('v5.0 / Separate maze mastery and sanctuary collections', (48, 796), 12, MUTED)
+        self.button('Maze challenges',(610,758,235,46),'challenge_hall',small=True)
+        self.button('Home sanctuary',(862,758,235,46),'sanctuary',small=True)
+        self.button('Quit', (1114,758,118,46),'quit',small=True)
 
     def draw_game(self):
         g = self.game
@@ -508,6 +511,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         for cell in g.berries:
             berry(self.canvas, self.center(cell), max(8, self.cell//4), self.t if self.characters and not self.comfort else 0)
         self.draw_world_extras()
+        self.draw_team_beacons50()
         frame = int(g.elapsed*10) % 8 if self.characters and not self.comfort else 0
         size = int(self.cell*1.48)
         if g.decoy_time > 0:
@@ -694,6 +698,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             self.text(caption, (65, y+31), 13, MUTED)
             self.button('ON' if value else 'OFF', (1074, y+7, 132, 42), action, value)
         self.button('Sound / readable text',(275,764,294,44),'accessibility',small=True)
+        self.button('Troubleshooting',(590,764,330,44),'support',small=True)
         self.button('Controls / gamepads',(947,764,285,44),'controls',small=True)
         self.text('Audio ready' if self.audio.available else 'Audio unavailable on this device; the game remains playable.', (49, 704), 16, MUTED)
         self.button('Back', (48, 766, 170, 44), 'back', True)
@@ -770,7 +775,13 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             self.draw_settings()
         elif self.screen == 'records':
             self.draw_records()
+        elif self.screen == 'run_insights': self.draw_run_insights49()
+        elif self.screen == 'team_journal': self.draw_team_journal50()
+        elif self.screen == 'support': self.draw_support49()
         elif self.screen == 'home_hub': self.draw_home_hub()
+        elif self.screen == 'garden_collection': self.draw_garden_collection()
+        elif self.screen == 'reward_room': self.draw_reward_room()
+        elif self.screen == 'completion_film': self.draw_completion_film()
         elif self.screen == 'contract_collection': self.draw_contract_collection()
         elif self.screen == 'challenge_hall': self.draw_challenge_hall()
         elif self.screen == 'profile': self.draw_profile()
@@ -846,7 +857,7 @@ def main():
                 app.draw()
                 pygame.image.save(app.canvas, str(folder/f'tier_{tier+1}.png'))
                 app.game.abandon()
-            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story','accessibility','home_activities','home_hub','challenge_hall','contract_collection','profile','records'):
+            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story','accessibility','home_activities','home_hub','challenge_hall','contract_collection','profile','records','garden_collection','reward_room'):
                 app.screen=screen
                 app.draw()
                 pygame.image.save(app.canvas,str(folder/f'{screen}.png'))

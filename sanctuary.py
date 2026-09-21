@@ -268,8 +268,8 @@ class SanctuaryUI:
         self.text(f'{len(progress["chapters"])} / 5 story chapters',(923,281),18,TEXT)
         self.text('DECORATIONS',(923,317),13,GREEN,bold=True)
         self.button(self.home_decor,(922,345,294,43),'home_decor',small=True)
-        for i,line in enumerate(('Lanterns: restore one garden.','Flowers: bring three Budew home.','Fountain: restore all five gardens.')):
-            self.text(line,(923,401+i*23),13,MUTED)
+        self.button('Preview decorations',(922,402,294,39),'decor_preview',small=True)
+        self.text('See rewards before applying them.',(923,449),13,MUTED)
         if self.home_selected is not None:
             i=self.home_selected
             if i in restored:

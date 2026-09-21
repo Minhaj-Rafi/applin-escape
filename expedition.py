@@ -133,6 +133,8 @@ class Session(BiomeRules, BaseSession):
         self.ledge = next((c for c in crossings[1:] if c[0] != self.bridge[0]), None) if self.bridge else None
         self.init_biome_rules(legacy=bool(code and code.strip().upper().startswith('AE3-')))
         if not code or code.strip().upper().startswith('AE42-'): self.rules_version=42
+        from team_beacons50 import initialize
+        initialize(self)
         self.berries_collected=0
         self.previous_best={}
         self.tutorial_seen_grass = False
@@ -174,6 +176,8 @@ class Session(BiomeRules, BaseSession):
         if not hasattr(obj,'berries_collected'): obj.berries_collected=0
         if not hasattr(obj,'previous_best'): obj.previous_best={}
         if not hasattr(obj,'contract'): obj.contract=None
+        if not hasattr(obj,'team_beacons'):
+            obj.team_beacons=[];obj.team_hold=0.0;obj.team_complete=False;obj.team_stamp_new=False
         for enemy in obj.enemies:
             if not hasattr(enemy,'recovery'): enemy.recovery=0.0
         return obj
@@ -187,6 +191,8 @@ class Session(BiomeRules, BaseSession):
         self.mode = original_mode
         credit_home(self)
         credit_contract(self)
+        from team_beacons50 import credit
+        self.team_stamp_new=credit(self)
         self.store.set('active_expedition', None)
         if outcome == 'cleared' and original_mode != 'tutorial':
             key = f'{self.tier}/{self.skill}/{self.coop}/{self.ability}/{original_mode}/v{self.rules_version}'
@@ -277,6 +283,10 @@ class Session(BiomeRules, BaseSession):
                 self.notify('Partner needs help! Touch them, or wait 8 seconds for recovery.')
                 return True
             return False
+        if self.invulnerable<=0 and self.state=='playing':
+            attacker=next((e for e in self.enemies if e.pos==self.player and e.stunned<=0),None)
+            if attacker:
+                self.last_capture47=attacker.species+(' caught you during its warned swoop.' if attacker.mood=='swoop' else ' reached your tile while pursuing.')
         hit=super().collision()
         if hit and self.rules_version>=31:
             for enemy in self.enemies:
@@ -433,6 +443,9 @@ class Session(BiomeRules, BaseSession):
                 enemy.direction = (nxt[0]-enemy.pos[0], nxt[1]-enemy.pos[1])
                 enemy.pos = nxt
             elif nxt != enemy.pos:
+                if diving and self.rules_version>=31:
+                    enemy.attack=[]; enemy.recovery=.35; enemy.mood='recover'
+                    continue
                 enemy.attack = []
                 choices = [p for p in neighbors(self.grid, enemy.pos) if p not in occupied]
                 if choices:
@@ -447,6 +460,8 @@ class Session(BiomeRules, BaseSession):
                 self.hits += 1
                 self.events.append(('hit', self.partner['pos']))
                 self.notify('Partner needs help! Touch them to rescue, or wait 8 seconds.')
+        from team_beacons50 import update as update_team
+        update_team(self,dt)
         if self.mode == 'tutorial':
             self.escapes = max(self.escapes, 9)
             checks = (self.steps >= 6, self.tutorial_seen_grass, self.biome_uses>0, self.escapes_used > 0, self.tutorial_seed)
