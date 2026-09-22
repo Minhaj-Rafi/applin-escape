@@ -1,7 +1,7 @@
 Applin Escape 5.3.1 challenge-sharing release candidate
 Linux / Python 3.12.14 / Pygame 2.6.1
 
-159 automated tests passed.
+162 automated tests passed.
 Source preview: 52 screens at 800x600, 1280x720 and 1600x900.
 Frozen Linux preview: 52 screens at the same three sizes.
 Bundled audio, controller imports and asset loading passed.
@@ -24,6 +24,11 @@ Challenge-sharing coverage:
 - a newly shared code is visible and selected instead of disappearing
 - the latest generated code remains recoverable from the Challenge screen
 - mouse/keyboard selection, copy, paste and replacement are covered
+
+Release packaging coverage:
+- verified Windows-layout builds include the executable, release notes and check manifest
+- incomplete release previews are rejected before a candidate ZIP can be created
+- the multiresolution Windows icon and draft-release workflow are present
 
 Native Windows USB/Bluetooth controller testing was not available in this Linux
 environment. Run BUILD_WINDOWS.bat and use Settings > Controls > INPUT TEST on

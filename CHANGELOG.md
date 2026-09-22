@@ -4,6 +4,13 @@
 - The latest generated code remains saved and can be restored later.
 - Added mouse selection, Ctrl+A, Ctrl+C, Ctrl+V, cursor navigation and editing.
 - Added visible Paste, Copy selected and Show latest code actions.
+- Added release notes and stronger Windows candidate packaging checks.
+- Packaging now rejects missing screens, duplicate captures and untested window sizes.
+- Added a multiresolution Windows application icon.
+- Added Windows file-version and product metadata for the executable Properties dialog.
+- Added GitHub issue/PR templates, privacy, support, security, contribution,
+  conduct, licensing, third-party notice and release-checklist documents.
+- GitHub Actions can now create a version-checked draft release from the browser.
 
 # 5.3 — Controller release candidate
 

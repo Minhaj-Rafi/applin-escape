@@ -30,6 +30,7 @@ if exist "build-preview" rmdir /s /q "build-preview"
 start "" /wait "dist\ApplinEscape\ApplinEscape.exe" --preview build-preview --verify-build
 if errorlevel 1 goto failed
 if not exist "build-preview\release_check.json" goto failed
+if not exist "build-preview\challenge.png" goto failed
 if not exist "build-preview\resident_profile.png" goto failed
 if not exist "build-preview\team_journal.png" goto failed
 if not exist "build-preview\support.png" goto failed

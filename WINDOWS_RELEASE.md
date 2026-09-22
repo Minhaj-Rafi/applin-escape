@@ -20,8 +20,10 @@ Upload the CONTENTS of applin_escape into the repository root, including the
 folder, create that exact file path using Add file > Create new file and paste its
 contents. Open Actions, choose Build Windows game, and run the workflow on your
 branch. Download its ApplinEscape-Windows-Release-Candidate artifact when all steps
-pass. The artifact contains the Windows ZIP and checksum. No release is published
-automatically.
+pass. The artifact contains the Windows ZIP and checksum. Keep **Create a draft
+GitHub release** disabled until native playtesting passes. Afterward, rerun with
+that option enabled and tag `v5.3.1`; the workflow creates a draft for review.
+See `GITHUB_RELEASE_GUIDE.md` for the complete browser-only process.
 
 ## Before calling it a stable Windows release
 
@@ -46,7 +48,10 @@ exact steps and version. No diagnostic information is sent automatically.
 
 ## Publish the tested candidate
 
-Attach the tested Windows ZIP and its checksum to a GitHub release, together with
-short release notes and any known issues. Retain the source ZIP for Python users.
+Review the workflow-created draft, its tested Windows ZIP, checksum, release notes
+and known issues before publishing. Retain the source ZIP for Python users.
 The checksum detects accidental file changes; it is not a code-signing certificate.
+The current executable is unsigned, so Windows may identify the publisher as
+unknown. Do not disable system protection globally. A trusted code-signing
+certificate is a separate future release requirement.
 This project is an unofficial fan game, with original procedural art and music.

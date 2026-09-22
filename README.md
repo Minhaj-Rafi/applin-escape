@@ -4,6 +4,16 @@ An unofficial Python/Pygame maze adventure with five biomes, solo play and local
 co-op. Artwork and music are original procedural assets. No online account or
 online multiplayer is included.
 
+![Applin Escape gameplay](previews/tier_3.png)
+
+## Download choices
+
+- **Windows players:** download the versioned Windows ZIP from GitHub Releases,
+  extract the whole folder, then open `ApplinEscape.exe`.
+- **Source players:** download this repository or the source ZIP and use
+  `PLAY_WINDOWS.bat`. Python 3.10 or newer is required for the source version.
+- Never run the game from inside a ZIP file.
+
 ## Start on Windows
 
 1. Extract the entire ZIP into a new folder. Do not launch inside the ZIP.
@@ -129,3 +139,12 @@ included for a repository whose root contains these game files.
 This download contains source and assets, **not a verified Windows executable**.
 See `WINDOWS_RELEASE.md` for build and publishing steps, `RELEASE_STATUS.md` for completed checks and remaining real-device playtests,
 `TEST_REPORT.txt` for results, and `CHANGELOG.md` for earlier release notes.
+
+## Repository documents
+
+- `RELEASE_NOTES.md` — player-facing changes for the current version
+- `RELEASE_CHECKLIST.md` — final release approval checklist
+- `GITHUB_RELEASE_GUIDE.md` — browser-only upload, EXE build and release steps
+- `WINDOWS_PLAYTEST.md` — native Windows and controller test checklist
+- `PRIVACY.md`, `SUPPORT.md`, `SECURITY.md` — data, help and reporting policies
+- `LICENSE` and `THIRD_PARTY_NOTICES.md` — source license and dependency notices

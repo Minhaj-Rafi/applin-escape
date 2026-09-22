@@ -11,7 +11,7 @@ included: the current build environment is Linux and no Windows runner is connec
 - Existing Windows event recovery, keyboard fallback and controller lifetime fixes.
 - Versioned Windows ZIP and SHA-256 packaging through BUILD_WINDOWS.bat or GitHub Actions.
 - Player guide, Windows release instructions, changelog and refreshed screenshots.
-- 159 automated tests passed, including controller polling, unmapped DualSense,
+- 162 automated tests passed, including controller polling, unmapped DualSense,
   disconnect handling and 60 generated-map connectivity/replay cases.
 - Controller and joystick events are excluded from the fragile Python event queue;
   movement and buttons use safe polling with one action per press.
@@ -19,9 +19,12 @@ included: the current build environment is Linux and no Windows runner is connec
 - Settings > Controls reports the device name and live input test.
 - Challenge entry starts blank while the latest generated code remains retrievable.
 - Challenge codes support mouse selection, keyboard selection, copy and paste.
+- Packaging rejects incomplete previews and includes release notes in Windows builds.
+- Windows builds use a multiresolution application icon.
+- GitHub community documents, templates and browser-driven draft releases are prepared.
 - 5.3.1 source and frozen Linux previews passed: 52 captures, three window sizes
   and bundled asset verification.
-- The 5.3 PyInstaller Linux build completed successfully.
+- The 5.3.1 PyInstaller Linux build completed successfully.
 - Fixed reported backup file locking and physical-device interference in the build test.
 
 ## Included gameplay
@@ -39,6 +42,8 @@ share cards; comfort settings; run insights and support diagnostics.
    reconnection and local co-op.
 3. Retest the Windows device that reported KeyError: 0 in pygame.event.get().
 4. Complete a new-player walkthrough and comfort check, then review difficulty feedback.
+5. Complete a name, character, music, artwork and distribution-rights review before
+   any public or commercial release involving third-party properties.
 
 Follow WINDOWS_RELEASE.md. These external gates are not passed by Linux tests.
 Do not label the candidate a stable Windows release until those checks pass.
