@@ -104,9 +104,12 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             pygame.draw.rect(self.canvas, EDGE, rect, 1, border_radius=radius)
 
     def mouse(self):
+        return self.canvas_point(pygame.mouse.get_pos())
+
+    def canvas_point(self,pos):
         width, height = self.window.get_size()
         scale = min(width / W, height / H)
-        x, y = pygame.mouse.get_pos()
+        x, y = pos
         return ((x - (width-W*scale)/2) / scale, (y - (height-H*scale)/2) / scale)
 
     def button(self, label, rect, action, primary=False, small=False):
@@ -303,7 +306,10 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
 
     def events(self):
         from event_safety import read_events
-        for event in read_events(self):
+        events=read_events(self)
+        if self.controls.enabled: events+=self.controls.poll_events()
+        for event in events:
+            if self.screen=='challenge' and self.challenge_event(event):continue
             if self.chronicle_event(event): continue
             if self.control_event(event): continue
             if event.type == pygame.QUIT:
@@ -316,9 +322,6 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
                         self.action(action)
                         break
             elif event.type == pygame.KEYDOWN:
-                if self.screen == 'challenge':
-                    self.challenge_key(event)
-                    continue
                 if event.key in (pygame.K_F3,pygame.K_F4) and self.screen=='play' and self.game.coop and event.key not in [key for row in self.controls.keys for key in row]:
                     self.action('ping:'+str(int(event.key==pygame.K_F4)))
                 elif event.key == pygame.K_F11:

@@ -1,5 +1,6 @@
 """Consistent SQLite backups and an explicit, non-destructive recovery command."""
 from pathlib import Path
+from contextlib import closing
 import os
 import shutil
 import sqlite3
@@ -10,7 +11,7 @@ def backup_store(store):
     folder=store.directory/'backups'; folder.mkdir(exist_ok=True)
     temporary=folder/'pending.sqlite3'
     try:
-        with sqlite3.connect(temporary) as dest:
+        with closing(sqlite3.connect(temporary)) as dest:
             store.db.backup(dest)
             if dest.execute('PRAGMA quick_check').fetchone()[0]!='ok':
                 raise sqlite3.DatabaseError('Backup integrity check failed')
@@ -25,7 +26,7 @@ def backup_store(store):
 def restore_backup(directory,index=1):
     directory=Path(directory); source=directory/'backups'/f'progress-{index}.sqlite3'
     if index not in (1,2,3) or not source.is_file(): raise ValueError('That backup is not available.')
-    with sqlite3.connect(f'{source.as_uri()}?mode=ro',uri=True) as db:
+    with closing(sqlite3.connect(f'{source.resolve().as_uri()}?mode=ro',uri=True)) as db:
         if db.execute('PRAGMA quick_check').fetchone()[0]!='ok': raise ValueError('Backup is damaged.')
         if not {'settings','mazes','runs'} <= {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}:
             raise ValueError('This is not an Applin Escape save.')

@@ -279,9 +279,8 @@ class SanctuaryUI:
         else: self.text('Select a garden to inspect it.',(923,491),14,MUTED)
         self.text('Garden displays are decorative.',(923,466),12,MUTED)
         self.button('Story expedition',(922,543,294,48),'story',True)
-        self.button('Adventure setup',(922,604,294,43),'adventure',small=True)
         if self.store.get('active_expedition',None):
-            self.button('Continue saved run',(922,663,294,43),'continue',small=True)
+            self.button('Continue saved run',(922,604,294,43),'continue',small=True)
         self.flow_text(self.home_notice,47,739,1175,14,TEXT,line_height=18)
         self.button('Back',(48,783,139,37),'back',small=True)
         self.text('Movement keys / left stick: walk     Interact: talk or inspect a garden',(218,794),14,MUTED)

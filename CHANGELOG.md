@@ -1,3 +1,34 @@
+# 5.3.1 — Challenge sharing fix
+
+- Challenge entry now opens with an empty, focused input field.
+- The latest generated code remains saved and can be restored later.
+- Added mouse selection, Ctrl+A, Ctrl+C, Ctrl+V, cursor navigation and editing.
+- Added visible Paste, Copy selected and Show latest code actions.
+
+# 5.3 — Controller release candidate
+
+- Replaced event-dependent controller actions with safe state polling.
+- Added fallback mappings for DualSense devices not recognized by SDL GameController.
+- Added button-edge handling, reconnect/disconnect detection and a live input tester.
+- Prevented plugged-in hardware from contaminating automated Windows build tests.
+- Retained keyboard-only recovery for the known Pygame event conversion fault.
+
+# 5.2.1 — Windows build and sanctuary fixes
+
+- Close SQLite backup and restore connections explicitly before renaming files, fixing the reported WinError 32.
+- Isolate the controller lifetime unit test from physical devices already connected to the build PC.
+- Remove Adventure setup from the sanctuary sidebar.
+- Show “not required” for zero resident requirements; clarify completed deliveries.
+- Verify existing shiny odds, independent co-op rolls and run-only persistence.
+
+# 5.2 — Homeward release candidate
+
+- Biome-specific orchard rows, wetland junctions, shrine courts, ruin rings and highland terraces.
+- AE52 code version; AE42/AE31/AE3 layout compatibility retained.
+- Refined original cutscene bird artwork with throat, crest and wing details.
+- Versioned native Windows ZIP packaging, checksum and release instructions.
+- Windows workflow builds a candidate artifact without publishing automatically.
+
 # Earlier release notes
 
 # Applin Escape v5.0 — Better Together

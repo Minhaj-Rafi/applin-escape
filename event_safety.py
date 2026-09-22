@@ -9,9 +9,10 @@ CONTROLLER_EVENTS=tuple(getattr(pygame,n) for n in (
     'CONTROLLERDEVICEADDED','CONTROLLERDEVICEREMOVED','CONTROLLERDEVICEREMAPPED'))
 
 def configure_events():
-    # Gameplay uses SDL CONTROLLER events. Raw JOY events are duplicate, unused input.
-    # Blocking also removes queued raw events before Pygame converts them to Python.
-    pygame.event.set_blocked(RAW_JOYSTICK_EVENTS)
+    # Controllers are polled in controls.py. Keeping SDL's joystick/controller
+    # events out of the Python queue avoids the Windows KeyError(0) conversion
+    # fault while retaining live axes and buttons through SDL's device state.
+    pygame.event.set_blocked(RAW_JOYSTICK_EVENTS+CONTROLLER_EVENTS)
 
 def known_conversion_failure(exc):
     cause=exc.__cause__ or exc.__context__

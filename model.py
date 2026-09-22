@@ -226,6 +226,31 @@ def generate(width, height, rng):
     return grid
 
 
+def carve_biome_regions(grid, tier, rng):
+    """Open connected regional routes without closing any base-maze corridor."""
+    width, height = len(grid[0]), len(grid)
+    centers = [(x,y) for y in range(4,height-4,2) for x in range(4,width-4,2)]
+    rng.shuffle(centers)
+    selected = []
+    for x,y in centers:
+        if any(abs(x-a)+abs(y-b)<9 for a,b in selected): continue
+        selected.append((x,y))
+        for dy in range(-3,4):
+            for dx in range(-3,4):
+                # Orchard rows, wetland junctions, shrine courts, ruin rings,
+                # and narrow highland terraces each retain different cover.
+                open_cell = (
+                    (abs(dy)==2 and abs(dx)<=3) or (dx==0 and abs(dy)<=2),
+                    (abs(dx)==2 and abs(dy)<=3) or (dy==0 and abs(dx)<=2),
+                    abs(dx)+abs(dy)<=3,
+                    max(abs(dx),abs(dy))==3 or (dx==0 and abs(dy)<=3),
+                    (dy in (-2,2) and abs(dx)<=3) or (dx==3 and abs(dy)<=2),
+                )[tier]
+                if open_cell: grid[y+dy][x+dx]=0
+        if len(selected)>=(3,4,3,4,4)[tier]: break
+    return grid
+
+
 @dataclass
 class Enemy:
     pos: tuple
@@ -243,14 +268,15 @@ class Enemy:
 class Session:
     PLAYER_DELAY = .135
 
-    def __init__(self, store, tier=0, mode='practice', seed_source=None):
+    def __init__(self, store, tier=0, mode='practice', seed_source=None, layout_version=42):
         self.store, self.tier, self.mode = store, tier, mode
         self.config = TIERS[tier]
         self.rng = random.Random()
         for _ in range(256):
             self.seed = seed_source() if seed_source else secrets.randbits(64)
             self.rng.seed(self.seed)
-            self.grid = carve_clearings(generate(self.config.width, self.config.height, self.rng), tier, self.rng)
+            carver = carve_biome_regions if layout_version >= 52 else carve_clearings
+            self.grid = carver(generate(self.config.width, self.config.height, self.rng), tier, self.rng)
             self.fingerprint = store.claim(canonical_layout(self.grid), self.seed, tier)
             if self.fingerprint:
                 break

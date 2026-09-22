@@ -1,4 +1,4 @@
-# Applin Escape 5.1 — Player guide
+# Applin Escape 5.3.1 — Player guide
 
 An unofficial Python/Pygame maze adventure with five biomes, solo play and local
 co-op. Artwork and music are original procedural assets. No online account or
@@ -8,7 +8,7 @@ online multiplayer is included.
 
 1. Extract the entire ZIP into a new folder. Do not launch inside the ZIP.
 2. Open `applin_escape` and double-click `PLAY_WINDOWS.bat`.
-3. Check that the banner says **HOMEWARD 5.1**.
+3. Check that the banner says **HOMEWARD 5.3.1**.
 
 Python 3.10+ is required for this source package. The launcher creates its own
 Python environment and installs Pygame on first launch. Later launches can work
@@ -38,9 +38,11 @@ lanes create tactical options. Click a landmark to pause and inspect its rules.
 | Tab + Enter | Menu navigation |
 | F11 | Fullscreen |
 
-Controls can be remapped. Supported SDL gamepads use D-pad/left stick for movement,
-A for escape, X for interaction and Start for pause. Physical-device compatibility
-still needs verification on your Windows setup.
+Controls can be remapped. Gamepads use D-pad/left stick for movement, the south
+face button for escape, the west face button for interaction and Options/Start for
+pause. Version 5.3 polls controller state instead of depending on the Windows event
+queue and includes an unmapped DualSense USB/Bluetooth fallback. Settings > Controls
+shows the controller name and a live input-test line.
 
 ## Local co-op
 
@@ -84,10 +86,18 @@ Run insights. Insights combines recorded versions and modes within each difficul
 and player mode; use it as personal history, not a controlled balance benchmark.
 Reports and share cards are local files. Nothing is uploaded automatically.
 
+AE52 challenge codes use new biome route patterns; older codes preserve their maps.
 Challenge codes replay a map; normal generation rejects previously recorded
 layouts on this computer, including mirrored/rotated copies. Uniqueness is local,
 not a global guarantee across installations. Shiny Applin is a rare independent
-run-only roll and is never an Apple style or purchasable unlock.
+run-only roll: 1 in 256 per player, independent in co-op. Both being shiny is
+1 in 65,536. Continuing a save preserves the roll; a new run rolls again. Shiny
+is never an Apple style or purchasable unlock.
+
+The challenge-entry page opens with a blank field. Click the field to type, or
+use Paste/Ctrl+V. Codes can be selected with click-drag or Ctrl+A and copied with
+the Copy button or Ctrl+C. **Show latest code** retrieves your most recently
+generated code even after leaving the share screen.
 
 ## Saves and updates
 
@@ -112,10 +122,10 @@ paths, save contents and raw crash logs. Crash details are separately written to
 ## Build and release status
 
 `BUILD_WINDOWS.bat` tests and builds a Windows distribution with PyInstaller, then
-renders the release preview. Share the entire resulting `dist/ApplinEscape` folder;
-that build does not require players to install Python. A GitHub Actions workflow is
+renders the release preview and creates a versioned ZIP plus SHA-256 checksum in
+`release/`. That Windows build does not require players to install Python. A GitHub Actions workflow is
 included for a repository whose root contains these game files.
 
 This download contains source and assets, **not a verified Windows executable**.
-See `RELEASE_STATUS.md` for completed checks and remaining real-device playtests,
+See `WINDOWS_RELEASE.md` for build and publishing steps, `RELEASE_STATUS.md` for completed checks and remaining real-device playtests,
 `TEST_REPORT.txt` for results, and `CHANGELOG.md` for earlier release notes.

@@ -1,47 +1,46 @@
-# Applin Escape 5.1 — Release checklist
+# Applin Escape 5.3.1 — Release candidate
 
-## Completed in this release pass
+This is a playable source release candidate. A verified Windows executable is not
+included: the current build environment is Linux and no Windows runner is connected.
 
-- Shared version source for the game window, menu, crash report and support export.
-- Retained joystick wrapper lifetime while a controller is active; safe cleanup if
-  a controller disappears while it is being queried.
-- Existing Windows input-error recovery and keyboard-only launcher preserved.
-- Expanded release preview from the older screen subset to 51 captures, including
-  all story panels, residents, decoration previews, team play, support and insights.
-- Source and Linux packaged previews completed at 800x600, 1280x720 and 1600x900.
-- 149 automated tests passed.
-- PyInstaller Linux build succeeded; packaged audio/controller loading and all
-  release previews succeeded. This does not constitute a Windows test.
-- Windows build script and repository-root GitHub workflow check newer screen outputs.
-- Consolidated player guide, earlier release notes and updated screenshots.
+## Completed
 
-## Existing playable feature set
+- Five biome-specific regional route patterns with connected maze corridors.
+- New AE52 codes; older challenge codes retain original layouts and rules.
+- Refined original bird illustration; fixed scene aspect ratios and comfort controls.
+- Existing Windows event recovery, keyboard fallback and controller lifetime fixes.
+- Versioned Windows ZIP and SHA-256 packaging through BUILD_WINDOWS.bat or GitHub Actions.
+- Player guide, Windows release instructions, changelog and refreshed screenshots.
+- 159 automated tests passed, including controller polling, unmapped DualSense,
+  disconnect handling and 60 generated-map connectivity/replay cases.
+- Controller and joystick events are excluded from the fragile Python event queue;
+  movement and buttons use safe polling with one action per press.
+- Automated tests ignore physical devices attached to the build computer.
+- Settings > Controls reports the device name and live input test.
+- Challenge entry starts blank while the latest generated code remains retrievable.
+- Challenge codes support mouse selection, keyboard selection, copy and paste.
+- 5.3.1 source and frozen Linux previews passed: 52 captures, three window sizes
+  and bundled asset verification.
+- The 5.3 PyInstaller Linux build completed successfully.
+- Fixed reported backup file locking and physical-device interference in the build test.
 
-Five biome maze adventure; three difficulty settings; four escape abilities; solo
-and local co-op; warnings and biome interactions; story and completion scenes;
-run-only shiny rolls; save backups; timed gardening; resident requests; community
-projects; 16 home milestones; 96 sanctuary goals; 960 maze contracts; optional team
-beacons; share-card export; comfort controls; run insights and support diagnostics.
+## Included gameplay
 
-## Still requires real-world validation
+Five biomes; three difficulty settings; four escape abilities; solo/local co-op;
+biome interactions; story and reward scenes; rare run-only shiny appearances;
+save backups; timed gardening; resident requests; community projects; 16 home
+milestones; 96 sanctuary goals; 960 maze contracts; optional team beacons; local
+share cards; comfort settings; run insights and support diagnostics.
 
-1. Build and run on native Windows, including a PC without Python for the packaged build.
-2. Test actual controllers: connect, disconnect, reconnect, and test local co-op.
-3. Confirm the originally reported event-queue crash no longer occurs on the affected device.
-4. Have new players try the tutorial, maze and sanctuary without coaching. Record
-   unclear controls, missed objects, failed routes and any visual discomfort.
-5. Review real completed-run data before making further difficulty adjustments.
+## Remaining release gates
 
-The project is not certified bug-free or finished for every possible feature idea.
-There is no online multiplayer, global leaderboard, automatic updater, or included
-verified Windows executable. Major topology redesign and professional sprite/scene
-production are future scope; the current map work adds clearing readability and
-validates connectivity while retaining compatible generated layouts.
+1. Build and launch the native Windows candidate, including on a PC without Python.
+2. Test a physical DualSense over USB and Bluetooth, including disconnection,
+   reconnection and local co-op.
+3. Retest the Windows device that reported KeyError: 0 in pygame.event.get().
+4. Complete a new-player walkthrough and comfort check, then review difficulty feedback.
 
-## Five-minute feedback form
-
-Record game version, Windows version, input device, selected biome/difficulty,
-what you tried, what happened, and what you expected. Include a screenshot when
-helpful. Use Settings > Troubleshooting to export a small support report if needed.
-Never send a save or raw crash log without checking it for information you prefer
-not to share. No reports are sent automatically.
+Follow WINDOWS_RELEASE.md. These external gates are not passed by Linux tests.
+Do not label the candidate a stable Windows release until those checks pass.
+Online multiplayer, global leaderboards, automatic updating and professional
+asset replacement are not part of this release scope. No publication has occurred.

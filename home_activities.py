@@ -214,9 +214,11 @@ class HomeActivitiesUI:
         for i,(kind,needed) in enumerate(recipe.items()):
             y=327+i*44; owned=care.get('berry_types',{}).get(kind,0)
             self.text(f'{kind}: {owned} / {needed}',(91,y),23,GREEN if owned>=needed else TEXT)
-        self.text(f'Rescued residents: {progress["rescued"]}/{rescues}',(695,332),21,TEXT)
-        self.text(f'Happy residents: {happy(care)}/{friends}',(695,377),21,TEXT)
-        self.text(f'Delivered: {care.get("projects46",{}).get(str(index),0)} times',(695,422),21,GOLD)
+        for label,current,required,y in (('Rescued residents',progress['rescued'],rescues,332),('Happy residents',happy(care),friends,377)):
+            status=f'{current} / {required} required' if required else 'not required'
+            self.text(f'{label}: {status}',(695,y),18,GREEN if current>=required else TEXT)
+        count=care.get('projects46',{}).get(str(index),0)
+        self.text(f'Deliveries completed: {count}',(695,422),21,GOLD)
         self.flow_text('Plan berry varieties across your three beds. Complete different projects to unlock home decorations.',695,471,475,17,MUTED)
         ready=progress['rescued']>=rescues and happy(care)>=friends and all(care.get('berry_types',{}).get(k,0)>=v for k,v in recipe.items())
         if ready: self.button('Deliver berries',(76,596,540,51),'project_deliver',True)

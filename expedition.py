@@ -38,8 +38,8 @@ def decode(value):
     return value
 
 
-def challenge_code(tier, seed, skill, ability, coop, legacy=False, rules=42):
-    body = f'{"AE3" if legacy else "AE31" if rules==31 else "AE42"}-{tier+1}-{seed:016X}-{SKILLS.index(skill)}{ABILITIES.index(ability)}{int(coop)}'
+def challenge_code(tier, seed, skill, ability, coop, legacy=False, rules=52):
+    body = f'{"AE3" if legacy else "AE31" if rules==31 else "AE42" if rules==42 else "AE52"}-{tier+1}-{seed:016X}-{SKILLS.index(skill)}{ABILITIES.index(ability)}{int(coop)}'
     return body + '-' + hashlib.sha256(body.encode()).hexdigest()[:6].upper()
 
 
@@ -53,13 +53,13 @@ def parse_code(code):
     try:
         prefix, tier, seed, options, checksum = parts
         body = '-'.join(parts[:-1])
-        if prefix not in ('AE3','AE31','AE42') or len(seed) != 16 or len(options) != 3: raise ValueError
+        if prefix not in ('AE3','AE31','AE42','AE52') or len(seed) != 16 or len(options) != 3: raise ValueError
         if hashlib.sha256(body.encode()).hexdigest()[:6].upper() != checksum: raise ValueError
         tier, seed = int(tier)-1, int(seed, 16)
         if tier not in range(5) or options[2] not in '01': raise ValueError
         return tier, seed, SKILLS[int(options[0])], ABILITIES[int(options[1])], options[2] == '1'
     except (ValueError, IndexError):
-        raise ValueError('Invalid challenge code. Paste the complete AE42, AE31 or legacy AE3 code.') from None
+        raise ValueError('Invalid challenge code. Paste the complete AE52, AE42, AE31 or legacy AE3 code.') from None
 
 
 class ReplayStore:
@@ -79,11 +79,12 @@ class Session(BiomeRules, BaseSession):
         if code:
             tier, replay_seed, skill, ability, coop = parse_code(code)
             mode = 'challenge'
+        modern_layout = not code or code.strip().upper().startswith('AE52-')
         super().__init__(ReplayStore() if code else store, tier, mode,
-                         (lambda: replay_seed) if code else seed_source)
+                         (lambda: replay_seed) if code else seed_source, layout_version=52 if modern_layout else 42)
         self.store = store
         self.skill, self.ability, self.coop = skill, ability, coop
-        self.code = challenge_code(tier, self.seed, skill, ability, coop, legacy=bool(code and code.strip().upper().startswith('AE3-')),rules=31 if code and code.strip().upper().startswith('AE31-') else 42)
+        self.code = challenge_code(tier, self.seed, skill, ability, coop, legacy=bool(code and code.strip().upper().startswith('AE3-')),rules=52 if modern_layout else 31 if code and code.strip().upper().startswith('AE31-') else 42)
         if self.contract: self.code=f'AC1-{GOALS.index(self.contract)}-'+self.code
         self.shiny = list(shiny_state) if shiny_state is not None else roll_shiny(coop)
         if not coop: self.shiny[1]=False
@@ -132,7 +133,8 @@ class Session(BiomeRules, BaseSession):
         self.bridge = crossings[0] if crossings else None
         self.ledge = next((c for c in crossings[1:] if c[0] != self.bridge[0]), None) if self.bridge else None
         self.init_biome_rules(legacy=bool(code and code.strip().upper().startswith('AE3-')))
-        if not code or code.strip().upper().startswith('AE42-'): self.rules_version=42
+        if modern_layout: self.rules_version=52
+        elif code.strip().upper().startswith('AE42-'): self.rules_version=42
         from team_beacons50 import initialize
         initialize(self)
         self.berries_collected=0

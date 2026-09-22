@@ -10,6 +10,7 @@ MUTED=(153,176,166)
 GREEN=(177,225,153)
 GOLD=(247,203,118)
 RED=(239,143,133)
+EDGE=(44,63,61)
 
 ABILITY_HELP = (
     'Hop to safety, leave a short decoy and briefly stun nearby birds.',
@@ -39,6 +40,11 @@ class ExpeditionUI:
         self.adaptive_music = self.store.get('adaptive_v3', True)
         self.challenge_input = ''
         self.challenge_error = ''
+        self.challenge_cursor = 0
+        self.challenge_anchor = 0
+        self.challenge_focus = False
+        self.challenge_dragging = False
+        self.challenge_rect = pygame.Rect(64,224,1146,58)
         self.autosave_timer = 0.0
         self.partner_timer = 0.0
         self.visual_partner = [1., 1.]
@@ -70,6 +76,11 @@ class ExpeditionUI:
             if self.screen == 'play': self.screen = 'paused'
             self.return_screen = self.screen
             self.screen = action
+            if action == 'challenge':
+                self.challenge_input = ''
+                self.challenge_error = ''
+                self.challenge_cursor = self.challenge_anchor = 0
+                self.challenge_focus = True
         elif action == 'continue':
             data = self.store.get('active_expedition', None)
             if data:
@@ -116,17 +127,31 @@ class ExpeditionUI:
                 self.challenge_error = ''
             except ValueError as exc:
                 self.challenge_error = str(exc)
+        elif action == 'challenge_latest':
+            code=self.store.get('last_shared_code43','')
+            self._set_challenge_text(code,select=True)
+            self.challenge_error='Latest generated code restored. Copy it or press Play this challenge.'
+        elif action == 'challenge_copy':
+            lo,hi=self.challenge_selection()
+            value=self.challenge_input[lo:hi] if lo!=hi else self.challenge_input
+            if value:
+                self._copy_challenge_text(value)
+                self.challenge_error='Selected challenge code copied.'
+            else:self.challenge_error='There is no challenge code to copy.'
+        elif action == 'challenge_paste':
+            value=self._read_challenge_clipboard()
+            if value:
+                self._replace_challenge_selection(value)
+                self.challenge_error='Challenge code pasted. Press Play this challenge.'
+            else:self.challenge_error='Clipboard unavailable or does not contain a challenge code.'
         elif action == 'copy_code':
             if self.game:
-                self.challenge_input = self.game.code
+                self.store.set('last_shared_code43',self.game.code)
+                self._set_challenge_text(self.game.code,select=True)
                 self.challenge_error = 'Code shown below. You can also copy it from challenge_code.txt in your save folder.'
                 (self.store.directory/'challenge_code.txt').write_text(self.game.code+'\n', encoding='utf-8')
-                try:
-                    if not pygame.scrap.get_init(): pygame.scrap.init()
-                    pygame.scrap.put(pygame.SCRAP_TEXT, (self.game.code+'\0').encode())
+                if self._copy_challenge_text(self.game.code):
                     self.challenge_error = 'Challenge code copied to the clipboard.'
-                except pygame.error:
-                    pass
                 self.navigation.append((self.screen,self.return_screen))
                 self.return_screen = self.screen
                 self.screen = 'challenge'
@@ -165,36 +190,124 @@ class ExpeditionUI:
             self.button('Continue saved game',(919,766,312,44),'continue',True)
 
     def draw_challenge(self):
-        self.header('One maze. A shared challenge.', 'AE42 uses tactical pursuit. AE31 and AE3 retain their original rules. Replays allow repeat maps.')
+        self.header('One maze. A shared challenge.', 'AE52 uses regional routes. Older codes keep their original maps and rules.')
         self.panel((44,162,1188,244))
-        self.text('TYPE OR PASTE AN AE42, AE31 OR AE3 CODE', (65,183),14,GREEN,bold=True)
-        pygame.draw.rect(self.canvas,(12,25,28),(64,224,1146,58),border_radius=8)
-        self.text(self.challenge_input or 'AE42-...' , (80,240),22,TEXT)
-        self.text('Ctrl+V to paste   /   Backspace to edit   /   Enter to begin', (65,311),16,MUTED)
+        self.text('PASTE AN AE52 CODE OR AN OLDER CHALLENGE CODE', (65,183),14,GREEN,bold=True)
+        pygame.draw.rect(self.canvas,(12,25,28),self.challenge_rect,border_radius=8)
+        pygame.draw.rect(self.canvas,GREEN if self.challenge_focus else EDGE,self.challenge_rect,2 if self.challenge_focus else 1,border_radius=8)
+        font=self.font(22); x,y=80,240
+        if self.challenge_input:
+            lo,hi=self.challenge_selection()
+            if lo!=hi:
+                left=x+font.size(self.challenge_input[:lo])[0]
+                width=max(2,font.size(self.challenge_input[lo:hi])[0])
+                pygame.draw.rect(self.canvas,(57,92,81),(left,235,width,31),border_radius=3)
+            self.text(self.challenge_input,(x,y),22,TEXT)
+            if self.challenge_focus and lo==hi and int(self.t*2)%2==0:
+                cx=x+font.size(self.challenge_input[:self.challenge_cursor])[0]
+                pygame.draw.line(self.canvas,GREEN,(cx,235),(cx,266),2)
+        else:
+            self.text('Click here, then type or paste a challenge code',(x,y),20,MUTED)
+        self.text('Click-drag to select   /   Ctrl+A select all   /   Ctrl+C copy   /   Ctrl+V paste', (65,311),16,MUTED)
         if self.challenge_error:
             self.text(self.challenge_error,(65,357),14,GOLD)
-        self.button('Play this challenge',(48,438,310,53),'challenge_play',True)
+        self.button('Play this challenge',(48,438,280,53),'challenge_play',True)
+        self.button('Paste',(344,438,220,53),'challenge_paste')
+        self.button('Copy selected',(580,438,260,53),'challenge_copy')
+        if self.store.get('last_shared_code43',''):
+            self.button('Show latest code',(856,438,330,53),'challenge_latest')
         self.text('Normal adventures still reject previously generated layouts on this computer.',(48,535),18,MUTED)
         self.text('A challenge starts from the beginning; it does not copy someone else\'s progress.',(48,571),18,MUTED)
         self.text('Use Share challenge from the pause or result screen to get your own code.',(48,608),18,MUTED)
         self.button('Back',(48,766,170,44),'back')
 
-    def challenge_key(self, event):
+    def challenge_selection(self):
+        return tuple(sorted((self.challenge_anchor,self.challenge_cursor)))
+
+    def _set_challenge_text(self,value,select=False):
+        self.challenge_input=''.join(c for c in value.strip().upper() if c in '0123456789ABCDEF-')[:80]
+        self.challenge_cursor=len(self.challenge_input)
+        self.challenge_anchor=0 if select else self.challenge_cursor
+        self.challenge_focus=True
+
+    def _replace_challenge_selection(self,value):
+        clean=''.join(c for c in value.strip().upper() if c in '0123456789ABCDEF-')
+        lo,hi=self.challenge_selection()
+        result=(self.challenge_input[:lo]+clean+self.challenge_input[hi:])[:80]
+        self.challenge_input=result
+        self.challenge_cursor=min(80,lo+len(clean));self.challenge_anchor=self.challenge_cursor
+        self.challenge_focus=True
+
+    def _copy_challenge_text(self,value):
+        try:
+            if not pygame.scrap.get_init():pygame.scrap.init()
+            pygame.scrap.put(pygame.SCRAP_TEXT,(value+'\0').encode())
+            return True
+        except pygame.error:return False
+
+    def _read_challenge_clipboard(self):
+        try:
+            if not pygame.scrap.get_init():pygame.scrap.init()
+            raw=pygame.scrap.get(pygame.SCRAP_TEXT)
+            return raw.decode('utf-8',errors='ignore').strip('\x00 \r\n') if raw else ''
+        except pygame.error:return ''
+
+    def _challenge_index_at(self,x):
+        font=self.font(22); local=max(0,x-80); best=0
+        for index in range(len(self.challenge_input)+1):
+            if font.size(self.challenge_input[:index])[0]<=local:best=index
+            else:break
+        return best
+
+    def challenge_event(self,event):
+        if event.type==pygame.MOUSEBUTTONDOWN and event.button==1:
+            point=self.canvas_point(event.pos)
+            if not self.challenge_rect.collidepoint(point):return False
+            self.challenge_focus=True
+            index=self._challenge_index_at(point[0])
+            if getattr(event,'clicks',1)>1:self.challenge_anchor=0;self.challenge_cursor=len(self.challenge_input)
+            else:self.challenge_cursor=index;self.challenge_anchor=index
+            self.challenge_dragging=True
+            return True
+        if event.type==pygame.MOUSEMOTION and self.challenge_dragging:
+            self.challenge_cursor=self._challenge_index_at(self.canvas_point(event.pos)[0]);return True
+        if event.type==pygame.MOUSEBUTTONUP and event.button==1 and self.challenge_dragging:
+            self.challenge_dragging=False;return True
+        if event.type!=pygame.KEYDOWN:return False
         if event.key == pygame.K_ESCAPE:
-            self.action('back')
+            self.action('back');return True
+        if not self.challenge_focus:return False
+        control=bool(event.mod & (pygame.KMOD_CTRL|pygame.KMOD_META))
+        shift=bool(event.mod & pygame.KMOD_SHIFT)
+        if control and event.key==pygame.K_a:
+            self.challenge_anchor=0;self.challenge_cursor=len(self.challenge_input)
+        elif control and event.key==pygame.K_c:
+            self.action('challenge_copy')
+        elif control and event.key==pygame.K_v:
+            self.action('challenge_paste')
         elif event.key == pygame.K_RETURN:
             self.action('challenge_play')
-        elif event.key == pygame.K_BACKSPACE:
-            self.challenge_input = self.challenge_input[:-1]
-        elif event.key == pygame.K_v and event.mod & pygame.KMOD_CTRL:
-            try:
-                if not pygame.scrap.get_init(): pygame.scrap.init()
-                raw=pygame.scrap.get(pygame.SCRAP_TEXT)
-                if raw: self.challenge_input=raw.decode('utf-8',errors='ignore').strip('\x00 \r\n')[:80].upper()
-            except pygame.error:
-                self.challenge_error='Clipboard unavailable. Type the code into the field.'
+        elif event.key in (pygame.K_BACKSPACE,pygame.K_DELETE):
+            lo,hi=self.challenge_selection()
+            if lo==hi:
+                if event.key==pygame.K_BACKSPACE:lo=max(0,lo-1)
+                elif hi<len(self.challenge_input):hi+=1
+            self.challenge_input=self.challenge_input[:lo]+self.challenge_input[hi:]
+            self.challenge_cursor=self.challenge_anchor=lo
+        elif event.key in (pygame.K_LEFT,pygame.K_RIGHT,pygame.K_HOME,pygame.K_END):
+            old=self.challenge_cursor
+            if event.key==pygame.K_LEFT:self.challenge_cursor=max(0,old-1)
+            elif event.key==pygame.K_RIGHT:self.challenge_cursor=min(len(self.challenge_input),old+1)
+            elif event.key==pygame.K_HOME:self.challenge_cursor=0
+            else:self.challenge_cursor=len(self.challenge_input)
+            if not shift:self.challenge_anchor=self.challenge_cursor
         elif event.unicode and all(c in '0123456789ABCDEFabcdef-' for c in event.unicode):
-            self.challenge_input=(self.challenge_input+event.unicode.upper())[:80]
+            self._replace_challenge_selection(event.unicode)
+        return True
+
+    def challenge_key(self, event):
+        """Compatibility wrapper for older callers and saved tests."""
+        return self.challenge_event(event)
 
     def draw_journal(self):
         titles=('Meet the flock.', 'Small victories. Lasting memories.', 'Your personal bests.')

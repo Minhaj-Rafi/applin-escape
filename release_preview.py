@@ -25,7 +25,7 @@ def render_release(folder,verify=False):
             capture('menu')
             for tier in range(5):
                 app.start(tier);capture(f'tier_{tier+1}');app.game.abandon()
-            for screen in ('help','settings','controls','adventure','journal','biome_guide','sanctuary','story','accessibility','home_activities','home_hub','challenge_hall','contract_collection','profile','records','garden_collection','reward_room','run_insights','team_journal'):
+            for screen in ('help','settings','controls','adventure','challenge','journal','biome_guide','sanctuary','story','accessibility','home_activities','home_hub','challenge_hall','contract_collection','profile','records','garden_collection','reward_room','run_insights','team_journal'):
                 app.screen=screen;capture(screen)
             # Seed illustrative test progress in the temporary database only.
             p=home_progress(app.store);p['rescued']=3;app.store.set('sanctuary_v4',p)
