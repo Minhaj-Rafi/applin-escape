@@ -1,0 +1,78 @@
+name: Build Windows game
+on:
+  workflow_dispatch:
+    inputs:
+      create_draft_release:
+        description: Create a draft GitHub release after the build passes
+        required: true
+        type: boolean
+        default: false
+      release_tag:
+        description: Version tag used when creating a draft release
+        required: true
+        type: string
+        default: v5.3.1
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements-build.txt
+      - name: Test game
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+          APPLIN_TEST_MODE: '1'
+        run: python -m unittest discover -s tests -v
+      - name: Build executable
+        run: python -m PyInstaller --noconfirm --clean ApplinEscape.spec
+      - name: Smoke test bundled assets
+        env:
+          SDL_VIDEODRIVER: dummy
+          SDL_AUDIODRIVER: dummy
+        shell: pwsh
+        run: |
+          $app = Start-Process -FilePath "dist\ApplinEscape\ApplinEscape.exe" -ArgumentList "--preview", "build-preview", "--verify-build" -Wait -PassThru
+          if ($app.ExitCode -ne 0) { throw "Game preview failed" }
+          foreach ($screen in @("release_check.json", "challenge.png", "resident_profile.png", "team_journal.png", "support.png", "coop.png")) {
+            if (!(Test-Path "build-preview\$screen")) { throw "Missing preview output: $screen" }
+          }
+      - name: Package verified Windows candidate
+        run: python package_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ApplinEscape-Windows-Release-Candidate
+          path: release/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Create draft GitHub release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.create_draft_release == true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ inputs.release_tag }}
+        run: |
+          $version = (python -c "from release_info import VERSION; print(VERSION)").Trim()
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $tag = $env:GITHUB_REF_NAME
+          } else {
+            $tag = $env:REQUESTED_TAG
+          }
+          if ($tag -ne "v$version") { throw "Tag $tag does not match game version v$version" }
+          $zip = Get-ChildItem release -Filter "*.zip" | Select-Object -First 1
+          $hash = Get-ChildItem release -Filter "*.sha256" | Select-Object -First 1
+          if (!$zip -or !$hash) { throw "Release package or checksum is missing" }
+          gh release create $tag $zip.FullName $hash.FullName --target $env:GITHUB_SHA --draft --title "Applin Escape $version" --notes-file RELEASE_NOTES.md
