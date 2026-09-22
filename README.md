@@ -4,7 +4,18 @@ An unofficial Python/Pygame maze adventure with five biomes, solo play and local
 co-op. Artwork and music are original procedural assets. No online account or
 online multiplayer is included.
 
-![Applin Escape gameplay](previews/tier_3.png)
+
+## Screenshots
+
+| Maze adventure | Home sanctuary |
+| --- | --- |
+| ![Maze adventure gameplay](screenshots/gameplay.png) | ![Home sanctuary](screenshots/sanctuary.png) |
+
+| Challenge codes | Local co-op |
+| --- | --- |
+| ![Challenge code screen](screenshots/challenge-code.png) | ![Local cooperative gameplay](screenshots/coop.png) |
+
+
 
 ## Download choices
 
