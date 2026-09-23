@@ -187,8 +187,9 @@ class PolishUI:
             label='TEAM: lit / reach shrine' if g.team_complete else f'TEAM: P1 on 1 + P2 on 2 / {g.team_hold:.1f}s of {HOLD_SECONDS:.1f}s'
             self.text(label,(32,121),12,GOLD)
         if g.coop:
-            self.button('P1 call' if pygame.K_F3 in sum(self.controls.keys,[]) else 'P1 [F3]',(826,30,114,43),'ping:0',small=True)
-            self.button('P2 call' if pygame.K_F4 in sum(self.controls.keys,[]) else 'P2 [F4]',(950,30,114,43),'ping:1',small=True)
+            if not (self.android and self.remote_role=='guest'):
+                self.button('P1 call' if self.android or pygame.K_F3 in sum(self.controls.keys,[]) else 'P1 [F3]',(826,30,114,43),'ping:0',small=True)
+            self.button('P2 call' if self.android or pygame.K_F4 in sum(self.controls.keys,[]) else 'P2 [F4]',(950,30,114,43),'ping:1',small=True)
         if g.mode=='tutorial':
             target=None
             if g.tutorial_step==1: target=min(g.hidden_cells,key=lambda p:len(path_to(g.grid,g.player,p))) if g.hidden_cells else None

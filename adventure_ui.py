@@ -68,6 +68,9 @@ class ExpeditionUI:
                                                 'campaign': self.campaign_results,'story':self.story_mode})
 
     def extra_action(self, action):
+        if action == 'back' and self.screen == 'challenge' and self.android:
+            try: pygame.key.stop_text_input()
+            except (pygame.error,AttributeError): pass
         if action == 'back': self.binding=None
         if action == 'back' and self.navigation and self.screen in ('adventure','journal','challenge','controls','biome_guide','sanctuary','story','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','records','contract_collection','garden_collection','reward_room','completion_film','run_insights','support','team_journal'):
             self.screen, self.return_screen = self.navigation.pop()
@@ -121,6 +124,9 @@ class ExpeditionUI:
         elif action == 'challenge_play':
             try:
                 parse_code(self.challenge_input)
+                if self.android:
+                    try: pygame.key.stop_text_input()
+                    except (pygame.error,AttributeError): pass
                 self.pending_code = self.challenge_input
                 self.campaign_results = []
                 self.start(mode='challenge')
@@ -165,10 +171,11 @@ class ExpeditionUI:
 
     def draw_adventure(self):
         self.header('Pack for the next adventure.', 'Choose your rules before starting. All abilities are available immediately.')
+        self.button('Nearby co-op', (1020, 42, 190, 43), 'nearby_coop', small=True)
         rows = [
             ('Challenge', self.skill, 'Relaxed: more help. Standard: tactical pursuit. Expert: faster birds.', 'skill'),
             ('Escape ability', self.ability, ABILITY_HELP[ABILITIES.index(self.ability)], 'ability'),
-            ('Players', 'Two players' if self.coop else 'Solo', 'Co-op shares seeds, score and escape charges. Both apples must reach the shrine.', 'coop'),
+            ('Players', 'Two devices' if self.android and self.remote_role else 'Two players' if self.coop else 'Solo', 'On Android, Nearby co-op connects two phones by Wi-Fi or Bluetooth.', 'nearby_coop' if self.android else 'coop'),
             ('Apple style', self.cosmetic, 'Earned styles only. Rare green shiny colour is random and lasts for one run.', 'cosmetic'),
         ]
         for i,(label,value,caption,action) in enumerate(rows):
@@ -177,7 +184,7 @@ class ExpeditionUI:
             self.text(label,(65,y+12),21,TEXT,bold=True)
             self.text(caption,(65,y+48),14,MUTED)
             self.button(value,(956,y+14,253,48),action,small=True)
-        self.text('Keyboard or controller: choose your bindings in Settings > Controls.',(48,555),17,GREEN)
+        self.text('Touch arrows move; USE interacts; ESC uses your ability.' if self.android else 'Keyboard or controller: choose your bindings in Settings > Controls.',(48,555),17,GREEN)
         self.text('Partner caught? Touch them to help, or they recover at the nest in 8 seconds.', (48,587),16,MUTED)
         self.button('Start selected biome',(48,636,274,52),'practice',True)
         self.button('Five-stage expedition',(337,636,277,52),'campaign')
@@ -239,6 +246,9 @@ class ExpeditionUI:
         self.challenge_focus=True
 
     def _copy_challenge_text(self,value):
+        if self.android:
+            from mobile_platform import set_android_clipboard
+            if set_android_clipboard(value): return True
         try:
             if not pygame.scrap.get_init():pygame.scrap.init()
             pygame.scrap.put(pygame.SCRAP_TEXT,(value+'\0').encode())
@@ -246,6 +256,10 @@ class ExpeditionUI:
         except pygame.error:return False
 
     def _read_challenge_clipboard(self):
+        if self.android:
+            from mobile_platform import get_android_clipboard
+            value=get_android_clipboard()
+            if value:return value
         try:
             if not pygame.scrap.get_init():pygame.scrap.init()
             raw=pygame.scrap.get(pygame.SCRAP_TEXT)
@@ -264,6 +278,9 @@ class ExpeditionUI:
             point=self.canvas_point(event.pos)
             if not self.challenge_rect.collidepoint(point):return False
             self.challenge_focus=True
+            if self.android:
+                try: pygame.key.start_text_input()
+                except (pygame.error,AttributeError): pass
             index=self._challenge_index_at(point[0])
             if getattr(event,'clicks',1)>1:self.challenge_anchor=0;self.challenge_cursor=len(self.challenge_input)
             else:self.challenge_cursor=index;self.challenge_anchor=index
@@ -273,6 +290,10 @@ class ExpeditionUI:
             self.challenge_cursor=self._challenge_index_at(self.canvas_point(event.pos)[0]);return True
         if event.type==pygame.MOUSEBUTTONUP and event.button==1 and self.challenge_dragging:
             self.challenge_dragging=False;return True
+        if event.type==getattr(pygame,'TEXTINPUT',-1) and self.challenge_focus:
+            if event.text and all(c in '0123456789ABCDEFabcdef-' for c in event.text):
+                self._replace_challenge_selection(event.text)
+            return True
         if event.type!=pygame.KEYDOWN:return False
         if event.key == pygame.K_ESCAPE:
             self.action('back');return True

@@ -21,6 +21,7 @@ from adventure_ui import ExpeditionUI
 from controls import ControlUI
 from biome_ui import BiomeUI
 from sanctuary import SanctuaryUI
+from mobile_ui import MobileUI
 from polish_ui import PolishUI
 from home_activities import HomeActivitiesUI
 from chronicle_ui import ChronicleUI
@@ -40,19 +41,25 @@ GOLD = (247, 203, 118)
 RED = (239, 143, 133)
 
 
-class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
+class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, BiomeUI, ExpeditionUI):
     def __init__(self, save_dir=None):
         pygame.mixer.pre_init(22050, -16, 1, 512)
         pygame.init()
+        from mobile_platform import is_android
         info = pygame.display.Info()
-        self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
-        self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
+        if is_android():
+            self.window_size = (max(640, info.current_w), max(360, info.current_h))
+            self.window = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        else:
+            self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
+            self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
         pygame.display.set_caption('Applin Escape | Homeward '+VERSION)
         self.canvas = pygame.Surface((W, H))
         self.store = Store(save_dir)
         self.init_adventure()
         self.init_controls()
         self.init_sanctuary()
+        self.init_mobile()
         self.audio = Audio(self.store.get('music', True), self.store.get('effects', True))
         self.comfort = self.store.get('stationary_v22', False)
         self.motion = False if self.comfort else self.store.get('decoration_v22', False)
@@ -216,6 +223,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
     def action(self, action):
         self.audio.play('click')
         self.focus = -1
+        if self.mobile_action(action): return
         if self.chronicle_action(action): return
         if self.activities_action(action): return
         if self.polish_action(action): return
@@ -309,12 +317,13 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         events=read_events(self)
         if self.controls.enabled: events+=self.controls.poll_events()
         for event in events:
+            if self.mobile_event(event): continue
             if self.screen=='challenge' and self.challenge_event(event):continue
             if self.chronicle_event(event): continue
             if self.control_event(event): continue
             if event.type == pygame.QUIT:
                 self.running = False
-            elif event.type == pygame.WINDOWFOCUSLOST and self.screen == 'play':
+            elif event.type in (pygame.WINDOWFOCUSLOST, getattr(pygame, 'APP_WILLENTERBACKGROUND', -999)) and self.screen == 'play':
                 self.action('pause')
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for rect, action in self.buttons:
@@ -336,7 +345,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
                     elif self.screen == 'menu': self.action('story')
                     elif self.screen == 'paused': self.action('resume')
                     elif self.screen == 'result': self.action(self.result_primary())
-                elif event.key == pygame.K_ESCAPE:
+                elif event.key in (pygame.K_ESCAPE, getattr(pygame, 'K_AC_BACK', pygame.K_ESCAPE)):
                     if self.screen == 'play': self.action('pause')
                     elif self.screen == 'paused': self.action('resume')
                     elif self.screen in ('help','settings','records','adventure','journal','controls','sanctuary','story','biome_guide','accessibility','object_info','ending','home_activities','home_hub','challenge_hall','profile','contract_collection','garden_collection','reward_room','completion_film','run_insights','support','team_journal'):
@@ -396,6 +405,9 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
 
     def update(self, dt):
         self.t += dt
+        if self.mobile_update(dt):
+            self.audio.set_danger(False)
+            return
         if self.screen != 'play':
             if self.screen=='sanctuary': self.update_sanctuary(dt)
             self.audio.set_danger(False)
@@ -404,6 +416,9 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         self.move_timer -= dt
         keys = pygame.key.get_pressed()
         held = self.controls.held(keys,0,g.coop)
+        touch_direction = self.touch.direction()
+        if touch_direction and touch_direction not in held:
+            held.append(touch_direction)
         if held and self.move_timer <= 0:
             direction = self.held_direction if self.held_direction in held else held[0]
             self.held_direction = direction
@@ -493,7 +508,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         self.text('APPLIN ESCAPE', (30, 23), 13, GREEN, bold=True)
         self.text(tier.biome, (28, 47), 33, TEXT, serif=True)
         self.text(f'{g.mode.upper()} / STAGE {g.tier+1:02d} / {g.skill.upper()} / '+('DUO' if g.coop else 'SOLO'), (31, 101), 13, tier.color, bold=True)
-        self.button('Pause  [P]', (1090,  30, 159, 43), 'pause', small=True)
+        self.button('Pause  [II]' if self.android else 'Pause  [P]', (1090,  30, 159, 43), 'pause', small=True)
         if not g.coop: self.text('Click landmarks to inspect', (827,42),14,MUTED)
         self.panel((20, 139, 900, 636), (19, 33, 33), 16)
         self.camera()
@@ -581,7 +596,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             pygame.draw.rect(self.canvas,GOLD if i<tier.seeds-len(g.seeds) else EDGE,rect,border_radius=3)
         self.text('Follow the light to the shrine' if not g.seeds else 'Gather every seed for the shrine',(962,324),12,MUTED)
         self.text(f'{g.ability.upper()} / {g.escapes}',(962,343),17,GREEN,bold=True)
-        self.button(f'Escape [{self.controls.key_name(0,4)}]',(960,375,270,43),'escape',True)
+        self.button('Escape [TOUCH]' if self.android else f'Escape [{self.controls.key_name(0,4)}]',(960,375,270,43),'escape',True)
         status = 'Camouflaged' if g.camouflage > 0 else 'Shield active' if g.invulnerable > 0 else 'Birds slowed' if g.slow_time > 0 else 'Concealed in tall grass' if g.player in g.hidden_cells else 'Watch the trails'
         self.text(status,(962,430),14,MUTED)
         pygame.draw.line(self.canvas,EDGE,(960,459),(1230,459))
@@ -601,8 +616,8 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         self.text('Berry',(1065,683),12,TEXT)
         pygame.draw.rect(self.canvas,(182,144,88),(1130,685,14,16),3)
         self.text('Exit',(1150,683),12,TEXT)
-        self.text(f'{self.controls.key_name(0,5)}: interact / ledge',(962,711),12,MUTED)
-        self.button('Comfort ON / map stays still' if self.comfort else 'V  Full map / quiet camera',
+        self.text('USE: interact / ledge' if self.android else f'{self.controls.key_name(0,5)}: interact / ledge',(962,711),12,MUTED)
+        self.button('Comfort ON / map stays still' if self.comfort else ('Full map / quiet camera' if self.android else 'V  Full map / quiet camera'),
                     (960,737,270,27),'overview',small=True)
         self.draw_biome_badge()
         self.buttons.append((pygame.Rect(610,91,620,43),'biome_guide'))
@@ -666,8 +681,8 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
         items = [
             ('01', 'Gather the light', 'Collect every gold sun seed, then step onto the sanctuary gate.', 'Dew adds 10 points. Rescue each enclosed Budew for an optional 350 points.'),
             ('02', 'Read the flock', 'Pidgeotto, Spearow, Murkrow, Talonflame and Cramorant each have a role.', 'Gold route circles warn of a swoop. Grass hides you; blue berries slow birds.'),
-            ('03', 'Make your escape', 'Choose Leaf Slip, Quick Dash, Decoy Apple or Camouflage in Adventure setup.', 'SPACE uses P1 ability; RIGHT SHIFT uses P2 ability. Co-op shares limited charges.'),
-            ('04', 'Keep your footing', 'Each biome has a special interaction. Press your Interact key near its marker.', 'Fruit lures, tides, bells, turning gates and wind rides create different routes.'),
+            ('03', 'Make your escape', 'Choose Leaf Slip, Quick Dash, Decoy Apple or Camouflage in Adventure setup.', 'Tap ESC on Android. Co-op shares limited charges.' if self.android else 'SPACE uses P1 ability; RIGHT SHIFT uses P2 ability. Co-op shares limited charges.'),
+            ('04', 'Keep your footing', 'Each biome has a special interaction. Tap USE near its marker.' if self.android else 'Each biome has a special interaction. Press your Interact key near its marker.', 'Fruit lures, tides, bells, turning gates and wind rides create different routes.'),
         ]
         for i, (number, title, a, b) in enumerate(items):
             y = 159+i*125
@@ -676,8 +691,8 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             self.text(title, (132, y+15), 22, TEXT, bold=True)
             self.text(a, (132, y+49), 17, MUTED)
             self.text(b, (132, y+77), 15, MUTED)
-        self.text('Default keys: WASD / arrows move, SPACE escape, E interact. Remap them in Settings > Controls.', (48, 688), 17, TEXT)
-        self.text('Gamepad: left stick / D-pad moves, A uses ability, X interacts, Start pauses. V toggles the optional camera.', (48, 723), 15, MUTED)
+        self.text('Touch: arrows move, ESC uses the ability, USE interacts, and II pauses.' if self.android else 'Default keys: WASD / arrows move, SPACE escape, E interact. Remap them in Settings > Controls.', (48, 688), 17, TEXT)
+        self.text('Nearby co-op connects Player 2 through the same Wi-Fi or paired Bluetooth.' if self.android else 'Gamepad: left stick / D-pad moves, A uses ability, X interacts, Start pauses. V toggles the optional camera.', (48, 723), 15, MUTED)
         self.button('Back',(48,766,170,44),'back',True)
         self.button('Illustrated biome guide',(905,766,327,44),'biome_guide',small=True)
 
@@ -693,7 +708,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             ('Particles', 'Local collection bursts; independent from scenery and character animation', self.particle_fx, 'particles'),
             ('Adaptive music', 'A quiet rhythmic layer accompanies pursuit', self.adaptive_music, 'adaptive'),
             ('Footstep trail', 'Show the corridors you have visited', self.trail, 'trail'),
-            ('Fullscreen', 'Also available with F11', self.fullscreen, 'fullscreen'),
+            ('Landscape display' if self.android else 'Fullscreen', 'Required for Android touch play' if self.android else 'Also available with F11', True if self.android else self.fullscreen, 'none' if self.android else 'fullscreen'),
         ]
         for i, (label, caption, value, action) in enumerate(options):
             y = 140+i*62
@@ -703,7 +718,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             self.button('ON' if value else 'OFF', (1074, y+7, 132, 42), action, value)
         self.button('Sound / readable text',(275,764,294,44),'accessibility',small=True)
         self.button('Troubleshooting',(590,764,330,44),'support',small=True)
-        self.button('Controls / gamepads',(947,764,285,44),'controls',small=True)
+        self.button('Touch controls' if self.android else 'Controls / gamepads',(947,764,285,44),'controls',small=True)
         self.text('Audio ready' if self.audio.available else 'Audio unavailable on this device; the game remains playable.', (49, 704), 16, MUTED)
         self.button('Back', (48, 766, 170, 44), 'back', True)
 
@@ -807,12 +822,15 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
             self.draw_journal()
         elif self.screen == 'challenge':
             self.draw_challenge()
+        elif self.screen in ('nearby_coop','remote_lobby','remote_code'):
+            self.draw_mobile_screen()
         elif self.screen == 'error':
             self.header('The adventure needs a moment.', 'A local file or save operation could not be completed.')
             # Wrap long OS messages instead of clipping.
             for i in range(0, len(self.error), 95):
                 self.text(self.error[i:i+95], (48, 200+(i//95)*32), 18, RED)
             self.button('Back to menu', (48, 650, 260, 50), 'menu', True)
+        self.draw_mobile_overlay()
         width, height = self.window.get_size()
         scale = min(width/W, height/H)
         dest = (max(1, int(W*scale)), max(1, int(H*scale)))
@@ -823,6 +841,7 @@ class App(ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, ControlUI, Biome
     def close(self):
         if self.game: self.consume_events()
         self.save_expedition()
+        self.close_mobile()
         self.controls.close()
         self.store.close()
         pygame.quit()
@@ -843,7 +862,7 @@ def main():
     parser.add_argument('--save-dir', help='Optional separate local save directory')
     parser.add_argument('--verify-build', action='store_true', help='With --preview, verify bundled audio and controller imports')
     parser.add_argument('--preview', help='Render menu and all five tiers to this folder using a temporary save')
-    args = parser.parse_args()
+    args, _android_args = parser.parse_known_args()
     if args.preview:
         from release_preview import render_release
         render_release(Path(args.preview),args.verify_build)

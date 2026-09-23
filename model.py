@@ -40,6 +40,13 @@ TIERS = (
 
 
 def default_save_dir():
+    try:
+        from mobile_platform import android_save_dir
+        mobile = android_save_dir()
+        if mobile:
+            return mobile
+    except (ImportError, OSError):
+        pass
     base = Path(os.environ.get('LOCALAPPDATA', Path.home() / '.local' / 'share'))
     return base / 'ApplinEscape'
 

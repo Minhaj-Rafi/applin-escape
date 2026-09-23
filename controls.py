@@ -316,6 +316,23 @@ class ControlUI:
         return True
 
     def draw_controls(self):
+        if self.android:
+            self.header('Touch controls.', 'Large controls stay in the same places across every biome.')
+            cards = (
+                ('MOVE', 'Hold the four arrows at the lower-left. Slide off and release to stop.'),
+                ('USE', 'Interact with fruit, bells, turning wheels, wind lanes and ledges.'),
+                ('ESC', 'Use the selected escape ability. Charges remain shared in co-op.'),
+                ('PAUSE', 'Tap II or use Android Back. The timer and flock stop immediately.'),
+            )
+            for i, (label, caption) in enumerate(cards):
+                y = 154+i*118
+                self.panel((44,y,1188,96))
+                self.text(label,(70,y+18),22,(177,225,153),bold=True)
+                self.text(caption,(238,y+23),18,(243,237,216))
+            self.text('For two phones, open Nearby co-op and use the same Wi-Fi or paired Bluetooth.',(48,674),17,(247,203,118))
+            self.button('Nearby co-op',(886,660,346,48),'nearby_coop',True,small=True)
+            self.button('Back',(48,766,170,44),'back')
+            return
         self.header('Choose how you play.', 'Keyboard, DualSense and compatible gamepads. Bindings are saved on this computer.')
         for player in range(2):
             x=44+player*602

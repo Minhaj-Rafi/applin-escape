@@ -1,3 +1,12 @@
+# Android preview — nearby co-op
+
+- Added landscape touch controls, Android-private save storage and pause-on-background behavior.
+- Added authoritative two-device co-op over the same Wi-Fi with automatic discovery and a four-digit lobby code.
+- Added paired-device Bluetooth RFCOMM co-op with Android Nearby Devices permissions.
+- Added compressed game-state synchronization so enemies, timers, pickups, biome mechanics and shiny states remain identical on both phones.
+- Added readable connection, rejection and disconnect states; a host run pauses if Player 2 disconnects.
+- Added Buildozer packaging, a GitHub APK workflow, Android privacy notes, a two-phone test checklist and six automated mobile/network tests.
+
 # 5.3.1 — Challenge sharing fix
 
 - Challenge entry now opens with an empty, focused input field.

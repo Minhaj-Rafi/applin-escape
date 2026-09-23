@@ -1,21 +1,11 @@
 # Applin Escape 5.3.1 — Player guide
 
-An unofficial Python/Pygame maze adventure with five biomes, solo play and local
-co-op. Artwork and music are original procedural assets. No online account or
-online multiplayer is included.
+An unofficial Python/Pygame maze adventure with five biomes, solo play and co-op.
+Artwork and music are original procedural assets. No online account or public
+Internet server is included. The Android preview adds direct nearby co-op between
+two devices using the same Wi-Fi or paired Bluetooth.
 
-
-## Screenshots
-
-| Maze adventure | Home sanctuary |
-| --- | --- |
-| ![Maze adventure gameplay](screenshots/gameplay.png) | ![Home sanctuary](screenshots/sanctuary.png) |
-
-| Challenge codes | Local co-op |
-| --- | --- |
-| ![Challenge code screen](screenshots/challenge-code.png) | ![Local cooperative gameplay](screenshots/coop.png) |
-
-
+![Applin Escape gameplay](previews/tier_3.png)
 
 ## Download choices
 
@@ -72,6 +62,18 @@ beacons. P1 holds 1 and P2 holds 2 for 1.5 seconds together; then finish the run
 bank a biome team stamp. Five stamps earn the Partner badge in Team journal.
 This objective is optional and does not change score, escape charges or shrine rules.
 Earlier saved runs keep their original objectives.
+
+## Android preview and nearby co-op
+
+The Android edition includes landscape touch controls, private app save storage,
+pause-on-background behavior and responsive letterboxed scaling. In nearby co-op,
+one phone hosts the authoritative simulation while the second controls Player 2.
+Automatic discovery works on the same Wi-Fi; paired Android phones can alternatively
+connect through Bluetooth. A four-digit lobby code prevents accidental joins.
+
+Use the **Build Android game** GitHub Action to create the APK. See
+`ANDROID_RELEASE.md` for installation, connection steps and the required two-phone
+release test. Nearby play is local-only and does not upload progress.
 
 ## Your sanctuary
 
