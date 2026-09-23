@@ -6,7 +6,9 @@ source.dir = .
 source.include_exts = py,png,jpg,svg,wav,txt,md,json
 source.exclude_dirs = .git,.github,.venv,venv,tests,previews,android-preview,build,dist,release,build-preview-frozen-final,build-preview-frozen-github,build-preview-frozen-release,build-preview-frozen-v51,build-preview-frozen-v52,build-preview-frozen-v53,build-preview-frozen-v53-final,build-preview-frozen-v531,build-preview-release,build-preview-v4,build-preview-v41,build-preview-v42,build-preview-v43,build-preview-v44,build-preview-v51,build-preview-v52,build-preview-v521,build-preview-v53,build-preview-v53-final,build-preview-v531,build-preview-v531-final
 version = 5.3.1
-requirements = python3,pygame==2.1.0,pyjnius,android
+# The python-for-android pygame 2.1.0 recipe is compatible with Python 3.10.
+# Pinning the target prevents newer p4a releases from selecting Python 3.11.
+requirements = python3==3.10.11,pygame==2.1.0,pyjnius,android
 icon.filename = assets/app_icon_512.png
 orientation = landscape
 fullscreen = 1
