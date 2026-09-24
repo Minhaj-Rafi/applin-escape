@@ -55,7 +55,7 @@ jobs:
       - name: Set up Android build Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.10.11'
 
       - name: Restore Android build cache
         uses: actions/cache@v4
@@ -63,7 +63,7 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
-          key: android-v2-${{ runner.os }}-${{ hashFiles('buildozer.spec', '.github/workflows/android-build.yml') }}
+          key: android-v3-${{ runner.os }}-${{ hashFiles('buildozer.spec', '.github/workflows/android-build.yml') }}
 
       - name: Install Android build tools
         run: |
@@ -89,7 +89,7 @@ jobs:
             libffi-dev \
             libssl-dev
 
-          python -m pip install --upgrade pip
+          python -m pip install "pip==25.3"
           python -m pip install buildozer setuptools cython==0.29.34
 
       - name: Remove stale Android packaging environment
@@ -103,7 +103,9 @@ jobs:
           fi
 
       - name: Build debug APK
-        run: buildozer -v android debug
+        run: |
+          printf '%s\n' 'pip==25.3' > "$RUNNER_TEMP/android-pip-constraints.txt"
+          PIP_CONSTRAINT="$RUNNER_TEMP/android-pip-constraints.txt" buildozer -v android debug
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
