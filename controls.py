@@ -27,13 +27,14 @@ class RawPad:
         self.mapping={0:1,1:2,2:0,3:3} if 'dualsense' in name or 'wireless controller' in name else {}
 
     def attached(self):
-    """Support both desktop Pygame and Android's older joystick API."""
-    get_attached = getattr(self.joystick, 'get_attached', None)
-
-    if get_attached is not None:
-        return bool(get_attached())
-
-    return bool(self.joystick.get_init())
+        """Support both desktop Pygame and Android's older joystick API."""
+        get_attached=getattr(self.joystick,'get_attached',None)
+        if get_attached is not None:
+            return bool(get_attached())
+        # Pygame 2.1.0 on python-for-android has no Joystick.get_attached().
+        # An initialized retained joystick is considered present; Android's
+        # device events/count refresh still handles later connection changes.
+        return bool(self.joystick.get_init())
     def quit(self): pass  # Controls owns and closes the retained Joystick.
     def get_axis(self,axis):
         index={pygame.CONTROLLER_AXIS_LEFTX:0,pygame.CONTROLLER_AXIS_LEFTY:1}.get(axis)
@@ -160,7 +161,7 @@ class Controls:
         self.last_removed=[]
         for instance,(pad,slot) in list(self.pads.items()):
             try: attached=pad.attached()
-            except (pygame.error, AttributeError): attached=False
+            except (pygame.error,AttributeError): attached=False
             if not attached:
                 try: pad.quit()
                 except pygame.error: pass
