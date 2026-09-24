@@ -6,6 +6,8 @@ on:
     paths:
       - '**.py'
       - 'assets/**'
+      - 'tests/**'
+      - 'requirements.txt'
       - 'buildozer.spec'
       - '.github/workflows/android-build.yml'
 
@@ -19,13 +21,21 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Set up test Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip
-      - run: python -m pip install -r requirements.txt
+          cache-dependency-path: requirements.txt
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt
+
       - name: Test desktop and shared game logic
         env:
           SDL_VIDEODRIVER: dummy
@@ -37,26 +47,66 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 90
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Set up Android build Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - uses: actions/cache@v4
+
+      - name: Restore Android build cache
+        uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
             .buildozer
-          key: android-${{ runner.os }}-${{ hashFiles('buildozer.spec', '.github/workflows/android-build.yml') }}
+          key: android-v2-${{ runner.os }}-${{ hashFiles('buildozer.spec', '.github/workflows/android-build.yml') }}
+
       - name: Install Android build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-virtualenv autoconf libtool libltdl-dev pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev automake autopoint gettext
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            python3-virtualenv \
+            autoconf \
+            automake \
+            autopoint \
+            gettext \
+            libtool \
+            libltdl-dev \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo6 \
+            cmake \
+            libffi-dev \
+            libssl-dev
+
           python -m pip install --upgrade pip
           python -m pip install buildozer setuptools cython==0.29.34
+
+      - name: Remove stale Android packaging environment
+        run: |
+          if [ -d .buildozer/android/platform ]; then
+            find .buildozer/android/platform \
+              -type d \
+              -path '*/build/venv' \
+              -prune \
+              -exec rm -rf -- {} +
+          fi
+
       - name: Build debug APK
         run: buildozer -v android debug
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
         with:
           name: ApplinEscape-Android-Debug
           path: bin/*.apk
