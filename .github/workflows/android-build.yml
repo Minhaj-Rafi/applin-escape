@@ -47,11 +47,11 @@ jobs:
           path: |
             ~/.buildozer
             .buildozer
-          key: android-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          key: android-${{ runner.os }}-${{ hashFiles('buildozer.spec', '.github/workflows/android-build.yml') }}
       - name: Install Android build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-virtualenv autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev automake autopoint gettext
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-virtualenv autoconf libtool libltdl-dev pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev automake autopoint gettext
           python -m pip install --upgrade pip
           python -m pip install buildozer setuptools cython==0.29.34
       - name: Build debug APK
