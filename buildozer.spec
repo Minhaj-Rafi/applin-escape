@@ -8,7 +8,7 @@ source.exclude_dirs = .git,.github,.venv,venv,tests,previews,android-preview,bui
 version = 5.3.1
 # The python-for-android pygame 2.1.0 recipe is compatible with Python 3.10.
 # Pinning the target prevents newer p4a releases from selecting Python 3.11.
-requirements = python3==3.10.11,pygame==2.1.0,pyjnius,android
+requirements = hostpython3==3.10.11,python3==3.10.11,pygame==2.1.0,pyjnius,android
 icon.filename = assets/app_icon_512.png
 orientation = landscape
 fullscreen = 1
