@@ -2,6 +2,11 @@ name: Build Android game
 
 on:
   workflow_dispatch:
+    inputs:
+      play_bundle:
+        description: 'Also build a Google Play bundle (.aab)'
+        type: boolean
+        default: false
   push:
     paths:
       - '**.py'
@@ -46,7 +51,8 @@ jobs:
   apk:
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Three CPU architectures make the first, uncached build slow.
+    timeout-minutes: 150
 
     steps:
       - name: Download repository
@@ -112,5 +118,30 @@ jobs:
         with:
           name: ApplinEscape-Android-Debug
           path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Build Google Play bundle
+        if: ${{ inputs.play_bundle }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          P4A_RELEASE_KEYALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          P4A_RELEASE_KEYSTORE_PASSWD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          P4A_RELEASE_KEYALIAS_PASSWD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # Signed when the keystore secrets exist; otherwise unsigned, for signing locally.
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            export P4A_RELEASE_KEYSTORE="$RUNNER_TEMP/release.keystore"
+          fi
+          printf '%s\n' 'pip==23.0.1' > "$RUNNER_TEMP/android-pip-constraints.txt"
+          PIP_CONSTRAINT="$RUNNER_TEMP/android-pip-constraints.txt" buildozer -v android release
+
+      - name: Upload Google Play bundle
+        if: ${{ inputs.play_bundle }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApplinEscape-Android-PlayBundle
+          path: bin/*.aab
           if-no-files-found: error
           retention-days: 14
