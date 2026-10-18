@@ -11,7 +11,7 @@ import zlib
 import pygame
 
 from expedition import Session
-from mobile_platform import is_android, request_nearby_permissions
+from mobile_platform import is_android, request_nearby_permissions, safe_insets, screen_density
 from network_coop import (BluetoothClient, BluetoothHost, LanClient, LanHost,
                           android_bluetooth_available, bonded_bluetooth_devices,
                           discover_lan)
@@ -21,40 +21,113 @@ MUTED = (153, 176, 166)
 GREEN = (177, 225, 153)
 GOLD = (247, 203, 118)
 RED = (239, 143, 133)
+W, H = 1280, 840  # logical canvas size, matching main.py
 
 
 class TouchPad:
-    """Large, low-opacity controls drawn over the fixed logical canvas."""
+    """Large controls laid out in physical units on the real window.
+
+    Wide phones get the buttons in the space beside the game picture; narrower
+    phones and tablets get the same physical size floating over its corners.
+    """
+    PAD_DP = 48       # one arrow; Android's recommended minimum touch target
+    USE_DP = 60
+    ESCAPE_DP = 72
+    PAUSE_DP = 48
+    MARGIN_DP = 10
+    MIN_SIDE_SCALE = .85  # side columns may shrink the game picture by at most 15%
+
     def __init__(self, enabled=False):
         self.enabled = enabled
         self.held = {}
-        self.directions = {
-            "up": (pygame.Rect(116, 610, 78, 68), (0, -1)),
-            "left": (pygame.Rect(38, 678, 78, 68), (-1, 0)),
-            "down": (pygame.Rect(116, 678, 78, 68), (0, 1)),
-            "right": (pygame.Rect(194, 678, 78, 68), (1, 0)),
-        }
-        self.actions = {
-            "interact": pygame.Rect(1018, 646, 92, 92),
-            "escape": pygame.Rect(1123, 592, 112, 112),
-            "pause": pygame.Rect(1172, 89, 66, 44),
-        }
+        self._cache_key = None
+        self._layout = None
+        self._sprites = {}
+
+    def active(self, app):
+        return self.enabled and app.screen == "play"
 
     def direction(self):
         return next(iter(self.held.values()), None)
 
+    @classmethod
+    def build_layout(cls, width, height, dp, insets=(0, 0, 0, 0)):
+        """Window-pixel rects for every control plus the area left for the game."""
+        inset_l, inset_t, inset_r, inset_b = insets
+        pad, use, esc, pause, margin = (max(1, round(size*dp)) for size in
+                                        (cls.PAD_DP, cls.USE_DP, cls.ESCAPE_DP, cls.PAUSE_DP, cls.MARGIN_DP))
+        column = margin*2 + max(pad*3, esc)
+        side_l, side_r = inset_l + column, inset_r + column
+        full_scale = min(width/W, height/H)
+        side_scale = min((width-side_l-side_r)/W, height/H) if width > side_l+side_r else 0
+        sidebars = side_scale >= full_scale*cls.MIN_SIDE_SCALE
+        if sidebars:
+            area = pygame.Rect(side_l, 0, width-side_l-side_r, height)
+        else:
+            # Push the picture to the top right so any spare space collects under
+            # the arrows at the bottom left, where they would otherwise cover the maze.
+            fit_w, fit_h = int(W*full_scale), int(H*full_scale)
+            area = pygame.Rect(width-inset_r-fit_w, inset_t, fit_w, fit_h)
+            if area.x < 0 or area.bottom > height:
+                area = pygame.Rect(0, 0, width, height)
+
+        bottom = height - inset_b - margin*(3 if sidebars else 1)
+        left = inset_l + margin
+        if sidebars:
+            left = inset_l + (column - pad*3)//2
+        directions = {
+            "up": (pygame.Rect(left+pad, bottom-pad*3, pad, pad), (0, -1)),
+            "left": (pygame.Rect(left, bottom-pad*2, pad, pad), (-1, 0)),
+            "right": (pygame.Rect(left+pad*2, bottom-pad*2, pad, pad), (1, 0)),
+            "down": (pygame.Rect(left+pad, bottom-pad, pad, pad), (0, 1)),
+        }
+        right = width - inset_r - margin
+        if sidebars:
+            right = width - inset_r - (column - esc)//2
+        escape = pygame.Rect(right-esc, bottom-esc, esc, esc)
+        if sidebars:
+            interact = pygame.Rect(escape.centerx-use//2, escape.y-margin-use, use, use)
+        else:
+            interact = pygame.Rect(escape.x-margin-use, bottom-use, use, use)
+        actions = {
+            "interact": interact,
+            "escape": escape,
+            "pause": pygame.Rect(width-inset_r-margin-pause, inset_t+margin, pause, pause),
+        }
+        return {"directions": directions, "actions": actions, "area": area,
+                "sidebars": sidebars, "dp": dp}
+
+    def layout(self, app):
+        size = app.window.get_size()
+        if size != self._cache_key:
+            self._cache_key = size
+            self._layout = self.build_layout(*size, screen_density(*size), safe_insets())
+        return self._layout
+
+    def canvas_area(self, app, width, height):
+        """The window area the game picture is fitted into."""
+        if self.active(app):
+            return self.layout(app)["area"]
+        return pygame.Rect(0, 0, width, height)
+
     def _point(self, app, event):
         if event.type in (pygame.FINGERDOWN, pygame.FINGERUP, pygame.FINGERMOTION):
             width, height = app.window.get_size()
-            return app.canvas_point((event.x * width, event.y * height))
-        return app.canvas_point(event.pos)
+            return (event.x * width, event.y * height)
+        return event.pos
+
+    def _direction_at(self, layout, point):
+        for rect, direction in layout["directions"].values():
+            if rect.collidepoint(point):
+                return direction
+        return None
 
     def handle(self, app, event):
-        if not self.enabled or app.screen != "play":
+        if not self.active(app):
             return None
         downs = (pygame.MOUSEBUTTONDOWN, pygame.FINGERDOWN)
         ups = (pygame.MOUSEBUTTONUP, pygame.FINGERUP)
-        if event.type not in downs + ups:
+        if event.type not in downs + ups + (pygame.FINGERMOTION,):
             return None
         if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP) and getattr(event, "button", 1) != 1:
             return None
@@ -62,35 +135,59 @@ class TouchPad:
         if event.type in ups:
             self.held.pop(identity, None)
             return "consumed"
+        layout = self.layout(app)
         point = self._point(app, event)
-        for rect, direction in self.directions.values():
-            if rect.collidepoint(point):
+        if event.type == pygame.FINGERMOTION:
+            # Sliding a thumb across the arrows changes direction without lifting it.
+            if identity not in self.held:
+                return None
+            direction = self._direction_at(layout, point)
+            if direction and direction != self.held[identity]:
                 self.held[identity] = direction
                 return ("move", direction)
-        for name, rect in self.actions.items():
+            return "consumed"
+        direction = self._direction_at(layout, point)
+        if direction:
+            self.held[identity] = direction
+            return ("move", direction)
+        for name, rect in layout["actions"].items():
             if rect.collidepoint(point):
                 return (name, None)
         return None
 
+    def _sprite(self, app, name, size, active):
+        key = name, size, active
+        if key not in self._sprites:
+            surface = pygame.Surface((size, size), pygame.SRCALPHA)
+            rect = surface.get_rect()
+            labels = {"up": "▲", "left": "◀", "down": "▼", "right": "▶",
+                      "interact": "USE", "escape": "ESC", "pause": "Ⅱ"}
+            if name in ("up", "left", "down", "right"):
+                inner = rect.inflate(-4, -4)
+                radius = max(6, size//4)
+                pygame.draw.rect(surface, (177, 225, 153, 130 if active else 78), inner, border_radius=radius)
+                pygame.draw.rect(surface, (243, 237, 216, 160), inner, 2, border_radius=radius)
+                font = app.font(max(12, size*9//20), bold=True)
+            else:
+                color = (247, 203, 118, 115) if name == "escape" else (177, 225, 153, 95)
+                pygame.draw.ellipse(surface, color, rect)
+                pygame.draw.ellipse(surface, (243, 237, 216, 175), rect, 2)
+                font = app.font(max(11, size*5//18), bold=True)
+            label = font.render(labels[name], True, (14, 24, 27))
+            surface.blit(label, label.get_rect(center=rect.center))
+            self._sprites[key] = surface
+        return self._sprites[key]
+
     def draw(self, app):
-        if not self.enabled or app.screen != "play":
+        """Draw onto the window, after the game picture has been scaled into place."""
+        if not self.active(app):
             return
-        overlay = pygame.Surface(app.canvas.get_size(), pygame.SRCALPHA)
-        labels = {"up": "▲", "left": "◀", "down": "▼", "right": "▶"}
-        for name, (rect, direction) in self.directions.items():
+        layout = self.layout(app)
+        for name, (rect, direction) in layout["directions"].items():
             active = direction in self.held.values()
-            pygame.draw.rect(overlay, (177, 225, 153, 120 if active else 72), rect, border_radius=18)
-            pygame.draw.rect(overlay, (243, 237, 216, 150), rect, 2, border_radius=18)
-            label = app.font(28, bold=True).render(labels[name], True, (14, 24, 27))
-            overlay.blit(label, label.get_rect(center=rect.center))
-        for name, rect in self.actions.items():
-            color = (247, 203, 118, 105) if name == "escape" else (177, 225, 153, 90)
-            pygame.draw.ellipse(overlay, color, rect)
-            pygame.draw.ellipse(overlay, (243, 237, 216, 170), rect, 2)
-            label = {"interact": "USE", "escape": "ESC", "pause": "Ⅱ"}[name]
-            rendered = app.font(15, bold=True).render(label, True, (14, 24, 27))
-            overlay.blit(rendered, rendered.get_rect(center=rect.center))
-        app.canvas.blit(overlay, (0, 0))
+            app.window.blit(self._sprite(app, name, rect.w, active), rect)
+        for name, rect in layout["actions"].items():
+            app.window.blit(self._sprite(app, name, rect.w, False), rect)
 
 
 class MobileUI:
@@ -461,7 +558,6 @@ class MobileUI:
             self.button("Cancel nearby session", (432, 714, 416, 48), "remote_back")
 
     def draw_mobile_overlay(self):
-        self.touch.draw(self)
         if self.remote_role and self.screen == "play":
             label = "HOST • P1" if self.remote_role == "host" else "CONNECTED • P2"
             self.text(label, (945, 106), 12, GREEN, bold=True)

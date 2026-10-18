@@ -17,11 +17,21 @@ android.permissions = android.permission.INTERNET,android.permission.ACCESS_NETW
 android.api = 35
 android.minapi = 26
 android.ndk_api = 26
-android.archs = arm64-v8a, armeabi-v7a
+# x86_64 covers Chromebooks and the Android emulator.
+android.archs = arm64-v8a, armeabi-v7a, x86_64
+# NDK r28 builds 16 KB-page-aligned libraries, needed on Android 15+ devices
+# that use 16 KB pages and for new Google Play uploads.
+android.ndk = 28c
+# Debug builds stay installable APKs; release builds make a Play Store bundle.
+android.debug_artifact = apk
+android.release_artifact = aab
 android.private_storage = True
 android.accept_sdk_license = True
 android.logcat_filters = python:D SDL:D *:S
 android.copy_libs = 1
+
+# Pin python-for-android so a new upstream release cannot change the build.
+p4a.branch = v2026.05.09
 
 [buildozer]
 log_level = 2

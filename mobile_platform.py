@@ -18,6 +18,37 @@ def android_save_dir():
         return Path(os.environ.get("ANDROID_PRIVATE", Path.home())) / "ApplinEscape"
 
 
+def _activity():
+    from jnius import autoclass
+    return autoclass("org.kivy.android.PythonActivity").mActivity
+
+
+def screen_density(width, height):
+    """Window pixels per Android dp (1/160 inch), so controls keep a physical size."""
+    if "ANDROID_ARGUMENT" in os.environ:
+        try:
+            return max(.75, float(_activity().getResources().getDisplayMetrics().density))
+        except Exception:
+            pass
+    # Desktop previews: treat the short side like a typical 400dp phone height.
+    return max(1.0, min(width, height) / 400)
+
+
+def safe_insets():
+    """Pixels hidden by a camera cutout on each edge: (left, top, right, bottom)."""
+    if "ANDROID_ARGUMENT" in os.environ:
+        try:
+            insets = _activity().getWindow().getDecorView().getRootWindowInsets()
+            cutout = insets.getDisplayCutout() if insets else None
+            if cutout:
+                return (int(cutout.getSafeInsetLeft()), int(cutout.getSafeInsetTop()),
+                        int(cutout.getSafeInsetRight()), int(cutout.getSafeInsetBottom()))
+        except Exception:
+            # Android 8 has no cutout API; the window already avoids the notch there.
+            pass
+    return (0, 0, 0, 0)
+
+
 def request_nearby_permissions():
     """Ask only for runtime permissions used by nearby play."""
     if not is_android():

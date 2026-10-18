@@ -27,6 +27,29 @@ and Python-for-Android toolchain. Later builds use the workflow cache.
 - **II** pauses. The Android Back button also pauses or returns.
 - The game remains landscape and scales the same fixed logical canvas to phones
   and tablets without cropping gameplay.
+- Buttons keep a physical size of at least 48dp (Android's minimum touch
+  target) on every screen density, and stay clear of camera cutouts.
+- On wide phones (20:9 and wider) the arrows and USE/ESC sit in the space beside
+  the game instead of over the maze. On 16:9 phones, tablets and foldables the
+  game moves to the top right and the buttons float in the bottom corners.
+- Slide a thumb across the arrows to change direction without lifting it.
+- `android-preview/screen-sizes.png` shows the layout on six device shapes.
+
+## Supported devices
+
+- Android 8.0 (API 26) and newer, phones, tablets, foldables and Chromebooks.
+- ARM64, 32-bit ARM and x86_64 (Chromebooks and the emulator) in one APK.
+- Built with NDK r28, so native libraries are 16 KB-page aligned for Android 15+
+  devices and current Google Play requirements.
+
+## Google Play bundle
+
+Run **Build Android game** manually and tick **Also build a Google Play bundle**.
+The workflow uploads **ApplinEscape-Android-PlayBundle** with an `.aab` file.
+To have GitHub sign it, add these repository secrets: `ANDROID_KEYSTORE_BASE64`
+(the keystore file, base64 encoded), `ANDROID_KEY_ALIAS`,
+`ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_PASSWORD`. Without them the bundle
+is unsigned and must be signed before uploading to Play Console.
 
 ## Two-device co-op on the same Wi-Fi
 

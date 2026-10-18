@@ -72,11 +72,7 @@ class AndroidInterface(unittest.TestCase):
         self.app.touch.enabled = True
         self.app.move_timer = 0
         before = self.app.game.steps
-        canvas_point = self.app.touch.directions['right'][0].center
-        width, height = self.app.window.get_size()
-        scale = min(width/1280, height/840)
-        point = ((width-1280*scale)/2+canvas_point[0]*scale,
-                 (height-840*scale)/2+canvas_point[1]*scale)
+        point = self.app.touch.layout(self.app)['directions']['right'][0].center
         pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1, pos=point))
         self.app.events()
         self.assertGreaterEqual(self.app.game.steps, before)
@@ -84,6 +80,64 @@ class AndroidInterface(unittest.TestCase):
         pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONUP, button=1, pos=point))
         self.app.events()
         self.assertIsNone(self.app.touch.direction())
+
+    def test_sliding_thumb_changes_direction(self):
+        self.app.start(0)
+        self.app.touch.enabled = True
+        layout = self.app.touch.layout(self.app)
+        width, height = self.app.window.get_size()
+        def finger(kind, name):
+            x, y = layout['directions'][name][0].center
+            return pygame.event.Event(kind, finger_id=3, x=x/width, y=y/height, dx=0, dy=0)
+        self.app.touch.handle(self.app, finger(pygame.FINGERDOWN, 'left'))
+        self.assertEqual(self.app.touch.direction(), (-1, 0))
+        self.assertEqual(self.app.touch.handle(self.app, finger(pygame.FINGERMOTION, 'up')), ('move', (0, -1)))
+        self.assertEqual(self.app.touch.direction(), (0, -1))
+        self.app.touch.handle(self.app, finger(pygame.FINGERUP, 'up'))
+        self.assertIsNone(self.app.touch.direction())
+
+    def test_touch_layout_fits_phones_tablets_and_foldables(self):
+        from mobile_ui import TouchPad
+        # (window pixels, Android density, cutout insets, expect side columns)
+        devices = {
+            '20:9 phone': ((2400, 1080), 2.625, (0, 0, 0, 0), True),
+            '20:9 phone with notch': ((2400, 1080), 2.625, (96, 0, 0, 0), True),
+            'small 20:9 phone': ((1600, 720), 2.0, (0, 0, 0, 0), True),
+            '16:9 phone': ((1920, 1080), 2.625, (0, 0, 0, 0), False),
+            '16:10 tablet': ((1920, 1200), 1.5, (0, 0, 0, 0), False),
+            '4:3 tablet': ((2048, 1536), 2.0, (0, 0, 0, 0), False),
+            'foldable inner screen': ((2208, 1768), 2.625, (0, 0, 0, 0), False),
+            'low-density 16:10 tablet': ((1280, 800), 1.0, (0, 0, 0, 0), False),
+        }
+        for name, ((width, height), dp, insets, sidebars) in devices.items():
+            layout = TouchPad.build_layout(width, height, dp, insets)
+            self.assertEqual(layout['sidebars'], sidebars, name)
+            controls = [rect for rect, _ in layout['directions'].values()] + list(layout['actions'].values())
+            screen = pygame.Rect(0, 0, width, height)
+            safe = pygame.Rect(insets[0], insets[1], width-insets[0]-insets[2], height-insets[1]-insets[3])
+            for i, rect in enumerate(controls):
+                self.assertTrue(safe.contains(rect), (name, rect))
+                self.assertGreaterEqual(rect.w, 48*dp, (name, rect))
+                for other in controls[i+1:]:
+                    self.assertFalse(rect.colliderect(other), (name, rect, other))
+                if sidebars:
+                    self.assertFalse(rect.colliderect(layout['area']), (name, rect))
+            area = layout['area']
+            full = min(width/1280, height/840)
+            self.assertGreaterEqual(min(area.w/1280, area.h/840), full*.85 - 1e-9, name)
+            self.assertTrue(screen.contains(area), name)
+
+    def test_menus_use_full_screen_and_play_uses_touch_area(self):
+        self.app.touch.enabled = True
+        self.app.screen = 'menu'
+        self.assertEqual(self.app.touch.canvas_area(self.app, *self.app.window.get_size()),
+                         pygame.Rect((0, 0), self.app.window.get_size()))
+        self.app.start(0)
+        left, top, scale = self.app.canvas_rect()
+        x, y = self.app.canvas_point((left+640*scale, top+420*scale))
+        self.assertAlmostEqual(x, 640, places=3)
+        self.assertAlmostEqual(y, 420, places=3)
+        self.app.draw()
 
     def test_compressed_snapshot_restores_exact_remote_state(self):
         self.app.coop = True

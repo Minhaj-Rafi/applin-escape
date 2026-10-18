@@ -113,11 +113,17 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
     def mouse(self):
         return self.canvas_point(pygame.mouse.get_pos())
 
-    def canvas_point(self,pos):
+    def canvas_rect(self):
+        """Top-left corner and scale of the logical canvas inside the window."""
         width, height = self.window.get_size()
-        scale = min(width / W, height / H)
+        area = self.touch.canvas_area(self, width, height)
+        scale = min(area.w / W, area.h / H)
+        return area.x + (area.w-W*scale)/2, area.y + (area.h-H*scale)/2, scale
+
+    def canvas_point(self,pos):
+        left, top, scale = self.canvas_rect()
         x, y = pos
-        return ((x - (width-W*scale)/2) / scale, (y - (height-H*scale)/2) / scale)
+        return ((x - left) / scale, (y - top) / scale)
 
     def button(self, label, rect, action, primary=False, small=False):
         rect = pygame.Rect(rect)
@@ -831,11 +837,11 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
                 self.text(self.error[i:i+95], (48, 200+(i//95)*32), 18, RED)
             self.button('Back to menu', (48, 650, 260, 50), 'menu', True)
         self.draw_mobile_overlay()
-        width, height = self.window.get_size()
-        scale = min(width/W, height/H)
+        left, top, scale = self.canvas_rect()
         dest = (max(1, int(W*scale)), max(1, int(H*scale)))
         self.window.fill((7, 14, 17))
-        self.window.blit(pygame.transform.smoothscale(self.canvas, dest), ((width-dest[0])//2, (height-dest[1])//2))
+        self.window.blit(pygame.transform.smoothscale(self.canvas, dest), (int(left), int(top)))
+        self.touch.draw(self)
         pygame.display.flip()
 
     def close(self):
