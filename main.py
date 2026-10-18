@@ -73,6 +73,8 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
         self.sprites = Sprites()
         pygame.display.set_icon(self.sprites.get('applin', 64, 0))
         self.font_cache = {}
+        self.text_cache = {}
+        self.frame_cache = {}
         self.running = True
         self.screen = 'menu'
         self.return_screen = 'menu'
@@ -105,10 +107,25 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
         return self.font_cache[key]
 
     def text(self, value, pos, size=20, color=TEXT, serif=False, bold=False, center=False):
-        surf = self.font(size, serif, bold).render(str(value), True, color)
+        # Most labels repeat every frame; rendering text is one of the slowest draw calls.
+        key = str(value), size, tuple(color), serif, bold
+        surf = self.text_cache.get(key)
+        if surf is None:
+            if len(self.text_cache) > 600:
+                self.text_cache.clear()
+            surf = self.text_cache[key] = self.font(size, serif, bold).render(key[0], True, color)
         rect = surf.get_rect(center=pos) if center else surf.get_rect(topleft=pos)
         self.canvas.blit(surf, rect)
         return rect
+
+    def cached_surface(self, key, build):
+        """Reuse an expensive surface (scaled, rotated or translucent) across frames."""
+        surf = self.frame_cache.get(key)
+        if surf is None:
+            if len(self.frame_cache) > 200:
+                self.frame_cache.clear()
+            surf = self.frame_cache[key] = build()
+        return surf
 
     def panel(self, rect, color=PANEL, radius=18, border=True):
         pygame.draw.rect(self.canvas, color, rect, border_radius=radius)
@@ -138,17 +155,63 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
         self.touch_dp = self.touch_insets = None
         return pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
-    def canvas_rect(self):
-        """Top-left corner and scale of the logical canvas inside the window."""
+    def portrait_play(self):
+        """Upright phone during a run: the canvas is shown as separate pieces."""
+        width, height = self.window.get_size()
+        return self.touch.enabled and height > width and self.screen == 'play'
+
+    def present_pieces(self):
+        """(source rect on the canvas, destination rect in the window) pairs."""
+        from mobile_ui import PORTRAIT_PIECES, PORTRAIT_SIZE
         width, height = self.window.get_size()
         area = self.touch.canvas_area(self, width, height)
-        scale = 1.0 if self.gpu_scaled else min(area.w / W, area.h / H)
-        return area.x + (area.w-W*scale)/2, area.y + (area.h-H*scale)/2, scale
+        if self.portrait_play():
+            unit = area.w / PORTRAIT_SIZE[0]
+            return [(pygame.Rect(src), pygame.Rect(round(area.x+dx*unit), round(area.y+dy*unit),
+                                                   round(src[2]*unit), round(src[3]*unit)))
+                    for src, (dx, dy) in PORTRAIT_PIECES]
+        scale = min(area.w / W, area.h / H)
+        if self.gpu_scaled and abs(scale-1) < .02:
+            scale = 1.0  # the GPU does the real scaling; keep the copy 1:1
+        top = area.y if height > width else area.y + (area.h-H*scale)/2
+        left = area.x + (area.w-W*scale)/2
+        return [(pygame.Rect(0, 0, W, H), pygame.Rect(round(left), round(top),
+                                                      max(1, round(W*scale)), max(1, round(H*scale))))]
+
+    def attach_canvas(self, pieces):
+        """On Android, draw straight into the window when the canvas is shown whole at 1:1."""
+        width, height = self.window.get_size()
+        dst = pieces[0][1]
+        if len(pieces) == 1 and dst.size == (W, H):
+            rect = pygame.Rect(max(0, min(width-W, dst.x)), max(0, min(height-H, dst.y)), W, H)
+            if rect != getattr(self, 'canvas_area_rect', None) or self.canvas.get_parent() is None:
+                self.canvas_area_rect = rect
+                self.canvas = self.window.subsurface(rect)
+            return True
+        if self.canvas.get_parent() is not None:
+            self.canvas = getattr(self, 'offscreen', None) or pygame.Surface((W, H)).convert()
+            self.offscreen = self.canvas
+            self.canvas_area_rect = None
+        return False
+
+    def fill_around(self, c):
+        """Paint the window black everywhere except rect c."""
+        width, height = self.window.get_size()
+        for rect in ((0, 0, c.x, height), (c.right, 0, width-c.right, height),
+                     (c.x, 0, c.w, c.y), (c.x, c.bottom, c.w, height-c.bottom)):
+            if rect[2] > 0 and rect[3] > 0:
+                self.window.fill((0, 0, 0), rect)
+
+    def canvas_rect(self):
+        """Top-left corner and scale of the canvas when it is shown whole."""
+        src, dst = self.present_pieces()[0]
+        return dst.x, dst.y, dst.w / src.w
 
     def canvas_point(self,pos):
-        left, top, scale = self.canvas_rect()
         x, y = pos
-        return ((x - left) / scale, (y - top) / scale)
+        pieces = self.present_pieces()
+        src, dst = next(((s, d) for s, d in pieces if d.collidepoint(x, y)), pieces[0])
+        return (src.x + (x-dst.x)*src.w/dst.w, src.y + (y-dst.y)*src.h/dst.h)
 
     def button(self, label, rect, action, primary=False, small=False):
         rect = pygame.Rect(rect)
@@ -241,7 +304,8 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
         scale=min(area.w/g.config.width,area.h/g.config.height)
         ww,hh=int(g.config.width*scale),int(g.config.height*scale)
         x,y=area.x+(area.w-ww)//2,area.y+(area.h-hh)//2
-        self.canvas.blit(pygame.transform.scale(self.world.surface,(ww,hh)),(x,y))
+        self.canvas.blit(self.cached_surface(('minimap',id(self.world),g.board_revision,ww,hh),
+                         lambda:pygame.transform.scale(self.world.surface,(ww,hh))),(x,y))
         for pos,color,r in [(g.player,(255,251,215),3),(g.exit,GREEN,3)]+[(q,GOLD,2) for q in g.seeds]+[(e.pos,RED,2) for e in g.enemies]:
             pygame.draw.circle(self.canvas,color,(int(x+(pos[0]+.5)*scale),int(y+(pos[1]+.5)*scale)),r)
         if not self.overview:
@@ -543,15 +607,22 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
         self.text(tier.biome, (28, 47), 33, TEXT, serif=True)
         self.text(f'{g.mode.upper()} / STAGE {g.tier+1:02d} / {g.skill.upper()} / '+('DUO' if g.coop else 'SOLO'), (31, 101), 13, tier.color, bold=True)
         self.button('Pause  [II]' if self.android else 'Pause  [P]', (1090,  30, 159, 43), 'pause', small=True)
-        if not g.coop: self.text('Click landmarks to inspect', (827,42),14,MUTED)
+        if not g.coop and not self.portrait_play(): self.text('Click landmarks to inspect', (827,42),14,MUTED)
         self.panel((20, 139, 900, 636), (19, 33, 33), 16)
         self.camera()
         self.canvas.set_clip((30,150,880,610))
-        self.world.draw(self.canvas,(self.ox,self.oy),self.cell,self.t,self.motion)
         # Reduce scenery competition without changing the biome palette or collisions.
-        scenery_shade = pygame.Surface((880,610),pygame.SRCALPHA)
-        scenery_shade.fill((8,18,24, 40))
-        self.canvas.blit(scenery_shade,(30,150))
+        shade=(8,18,24,40)
+        if self.android:
+            # Phones bake the shade into the board once instead of blending every frame.
+            self.world.draw(self.canvas,(self.ox,self.oy),self.cell,self.t,self.motion,shade)
+        else:
+            self.world.draw(self.canvas,(self.ox,self.oy),self.cell,self.t,self.motion)
+            def veil():
+                surface = pygame.Surface((880,610),pygame.SRCALPHA)
+                surface.fill(shade)
+                return surface
+            self.canvas.blit(self.cached_surface('scenery_shade', veil),(30,150))
         self.draw_biome_features()
         if self.trail:
             for pos in g.visited:
@@ -579,7 +650,9 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
             if e.stunned>0:flight_frame=0
             sprite=self.bird_sprite(e,size,flight_frame)
             if self.characters and not self.comfort and e.mood=='swoop':
-                sprite=pygame.transform.smoothscale(pygame.transform.rotate(sprite,-14*(e.direction[0] or 1)),(size,size))
+                angle=-14*(e.direction[0] or 1)
+                sprite=self.cached_surface(('swoop',id(sprite),angle,size),lambda s=sprite,a=angle:
+                    pygame.transform.smoothscale(pygame.transform.rotate(s,a),(size,size)))
             height=0 if e.stunned>0 else max(2,self.cell//8)
             if self.characters and not self.comfort and e.mood=='search': height+=int(math.sin(g.elapsed*3)*2)
             self.canvas.blit(sprite,(x-size//2,y-size//2-height))
@@ -742,7 +815,7 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
             ('Particles', 'Local collection bursts; independent from scenery and character animation', self.particle_fx, 'particles'),
             ('Adaptive music', 'A quiet rhythmic layer accompanies pursuit', self.adaptive_music, 'adaptive'),
             ('Footstep trail', 'Show the corridors you have visited', self.trail, 'trail'),
-            ('Landscape display' if self.android else 'Fullscreen', 'Required for Android touch play' if self.android else 'Also available with F11', True if self.android else self.fullscreen, 'none' if self.android else 'fullscreen'),
+            ('Portrait display' if self.android else 'Fullscreen', 'Required for Android touch play' if self.android else 'Also available with F11', True if self.android else self.fullscreen, 'none' if self.android else 'fullscreen'),
         ]
         for i, (label, caption, value, action) in enumerate(options):
             y = 140+i*62
@@ -814,6 +887,8 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
             self.text(self.result_comparison(),(640,493),12,MUTED,center=True)
 
     def draw(self):
+        pieces = self.present_pieces()
+        direct = self.gpu_scaled and self.attach_canvas(pieces)
         self.canvas.fill(BG)
         self.buttons = []
         if self.screen == 'menu':
@@ -865,13 +940,19 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
                 self.text(self.error[i:i+95], (48, 200+(i//95)*32), 18, RED)
             self.button('Back to menu', (48, 650, 260, 50), 'menu', True)
         self.draw_mobile_overlay()
-        left, top, scale = self.canvas_rect()
-        self.window.fill((7, 14, 17))
-        if scale == 1:
-            self.window.blit(self.canvas, (round(left), round(top)))
+        if direct:
+            # The canvas is part of the window already; repaint only the margins.
+            self.fill_around(self.canvas_area_rect)
         else:
-            dest = (max(1, int(W*scale)), max(1, int(H*scale)))
-            self.window.blit(pygame.transform.smoothscale(self.canvas, dest), (int(left), int(top)))
+            if self.gpu_scaled:
+                self.fill_around(pieces[0][1])  # the first piece covers its own area
+            else:
+                self.window.fill((7, 14, 17))
+            for src, dst in pieces:
+                piece = self.canvas.subsurface(src)
+                if dst.size != src.size:
+                    piece = pygame.transform.smoothscale(piece, dst.size)
+                self.window.blit(piece, dst)
         self.touch.draw(self)
         pygame.display.flip()
 
@@ -886,7 +967,8 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
     def run(self):
         try:
             while self.running:
-                dt = min(self.clock.tick(60)/1000, .05)
+                # Android phones may refresh at 90-120 Hz; vsync sets the real pace there.
+                dt = min(self.clock.tick(120 if self.gpu_scaled else 60)/1000, .05)
                 self.events()
                 self.update(dt)
                 self.draw()

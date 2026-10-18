@@ -194,13 +194,22 @@ class World:
         pygame.draw.ellipse(self.surface,(126,102,61),(px+6,py+22,36,19),3)
         pygame.draw.ellipse(self.surface,(224,191,112),(px+9,py+25,30,12),2)
 
-    def draw(self, canvas, origin, cell, t, motion):
+    def draw(self, canvas, origin, cell, t, motion, shade=None):
         scale=cell/TILE
-        if cell==TILE:
+        if cell==TILE and not shade:
             canvas.blit(self.surface,origin)
         else:
-            size=(self.game.config.width*cell,self.game.config.height*cell)
-            canvas.blit(pygame.transform.scale(self.surface,size),origin)
+            # The board is painted once per World, so keep the scaled (and
+            # optionally pre-shaded) copy instead of rebuilding it every frame.
+            if getattr(self,'_scaled_key',None)!=(cell,shade):
+                size=(self.game.config.width*cell,self.game.config.height*cell)
+                self._scaled=pygame.transform.scale(self.surface,size) if cell!=TILE else self.surface.copy()
+                if shade:
+                    veil=pygame.Surface(size,pygame.SRCALPHA)
+                    veil.fill(shade)
+                    self._scaled.blit(veil,(0,0))
+                self._scaled_key=(cell,shade)
+            canvas.blit(self._scaled,origin)
         if motion:
             for x,y in self.water_cells:
                 px,py=int(origin[0]+(x+.5)*cell),int(origin[1]+(y+.5)*cell)

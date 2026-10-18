@@ -1,7 +1,7 @@
 # Android preview build
 
 The Android edition keeps the complete maze, sanctuary, challenge, save and
-shiny systems. It adds a landscape touch interface and nearby two-device co-op.
+shiny systems. It adds a portrait, Game Boy style touch interface and nearby two-device co-op.
 
 ## Build an APK on GitHub
 
@@ -21,19 +21,19 @@ and Python-for-Android toolchain. Later builds use the workflow cache.
 
 ## Mobile controls
 
-- Use the four large arrow buttons to move.
+- The phone is held upright like a Game Boy. The maze fills the full width at
+  the top, the status panel sits just below it in two halves, and the controls
+  sit on a black panel at the bottom.
+- Use the four large arrow buttons to move. Slide a thumb across them to change
+  direction without lifting it.
 - **USE** interacts with fruit branches, bells, turning wheels and wind lanes.
 - **ESC** uses the selected escape ability.
-- **II** pauses. The Android Back button also pauses or returns.
-- The game remains landscape and scales the same fixed logical canvas to phones
-  and tablets without cropping gameplay.
-- Buttons keep a physical size of at least 48dp (Android's minimum touch
-  target) on every screen density, and stay clear of camera cutouts.
-- On wide phones (20:9 and wider) the arrows and USE/ESC sit in the space beside
-  the game instead of over the maze. On 16:9 phones, tablets and foldables the
-  game moves to the top right and the buttons float in the bottom corners.
-- Slide a thumb across the arrows to change direction without lifting it.
-- `android-preview/screen-sizes.png` shows the layout on six device shapes.
+- **MAP** switches between the close-up camera and the full map.
+- **PAUSE** pauses. The Android Back button also pauses or returns.
+- Buttons grow with the screen (48dp to 72dp) and stay clear of camera cutouts
+  and the navigation bar.
+- The tilt sensor is ignored, so tilting the phone never moves Applin.
+- `android-preview/portrait.png` shows the layout on phones and a tablet.
 
 ## Supported devices
 

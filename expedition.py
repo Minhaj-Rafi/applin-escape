@@ -404,7 +404,7 @@ class Session(BiomeRules, BaseSession):
                 self.grid[cell[1]][cell[0]] = 1
                 self.bridge_open = False
                 self.board_revision += 1
-        pd = distances(self.grid, [self.player])
+        pd = None  # computed only when a bird actually picks a new target
         for enemy in self.enemies:
             enemy.stunned = max(0, enemy.stunned-dt)
             enemy.attack_cd = max(0, enemy.attack_cd-dt)
@@ -422,6 +422,8 @@ class Session(BiomeRules, BaseSession):
                 continue
             enemy.timer -= dt
             if enemy.timer > 0: continue
+            if pd is None:
+                pd = distances(self.grid, [self.player])
             target = self.enemy_target(enemy, pd)
             route = path_to(self.grid, enemy.pos, target)
             active_swoops=sum(bool(e.warning>0 or e.attack) for e in self.enemies if e is not enemy)

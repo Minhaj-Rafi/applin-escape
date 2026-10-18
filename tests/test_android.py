@@ -127,6 +127,61 @@ class AndroidInterface(unittest.TestCase):
             self.assertGreaterEqual(min(area.w/1280, area.h/840), full*.85 - 1e-9, name)
             self.assertTrue(screen.contains(area), name)
 
+    def test_portrait_layout_puts_game_on_top_and_controls_below(self):
+        from mobile_ui import TouchPad, PORTRAIT_PIECES, PORTRAIT_SIZE
+        devices = {
+            '20:9 phone': ((1080, 2400), 2.625, (0, 0, 0, 0)),
+            'phone with notch': ((1080, 2400), 2.625, (0, 96, 0, 63)),
+            'small phone': ((720, 1600), 2.0, (0, 0, 0, 0)),
+            'narrow low-density phone': ((480, 854), 1.5, (0, 0, 0, 0)),
+            '16:9 phone': ((1080, 1920), 2.625, (0, 0, 0, 0)),
+            'tablet': ((1600, 2560), 2.0, (0, 0, 0, 0)),
+            '4:3 tablet': ((1536, 2048), 2.0, (0, 0, 0, 0)),
+            'foldable': ((1768, 2208), 2.625, (0, 0, 0, 0)),
+        }
+        for name, ((width, height), dp, insets) in devices.items():
+            layout = TouchPad.build_layout(width, height, dp, insets)
+            self.assertTrue(layout['portrait'], name)
+            area = layout['area']
+            self.assertEqual(area.top, insets[1], name)
+            self.assertAlmostEqual(area.w/area.h, PORTRAIT_SIZE[0]/PORTRAIT_SIZE[1], places=2)
+            # The game picture fills most of the width and over half the usable height.
+            self.assertGreater(area.h, (height-insets[1]-insets[3])*.5, name)
+            unit = area.w/PORTRAIT_SIZE[0]
+            pieces = [pygame.Rect(area.x+dx*unit, area.y+dy*unit, src[2]*unit, src[3]*unit)
+                      for src, (dx, dy) in PORTRAIT_PIECES]
+            controls = [rect for rect, _ in layout['directions'].values()] + list(layout['actions'].values())
+            safe = pygame.Rect(0, insets[1], width, height-insets[1]-insets[3])
+            for i, rect in enumerate(controls):
+                self.assertEqual(rect.collidelist(pieces), -1, (name, rect))
+                self.assertTrue(safe.contains(rect), (name, rect))
+                self.assertGreaterEqual(min(rect.w, rect.h), 48*dp - 1, (name, rect))
+                for other in controls[i+1:]:
+                    self.assertFalse(rect.colliderect(other), (name, rect, other))
+            size, logical_dp, logical_insets = TouchPad.logical_window(width, height, dp, insets)
+            logical_area = TouchPad.build_layout(*size, logical_dp, logical_insets)['area']
+            self.assertAlmostEqual(logical_area.w/PORTRAIT_SIZE[0], 1, delta=.01)
+
+    def test_portrait_taps_reach_the_split_hud(self):
+        from mobile_ui import TouchPad
+        size, self.app.touch_dp, self.app.touch_insets = TouchPad.logical_window(1080, 2400, 2.625)
+        self.app.window = pygame.display.set_mode(size)
+        self.app.touch.enabled = True
+        self.app.start(0)
+        self.app.draw()
+        pieces = self.app.present_pieces()
+        self.assertEqual(len(pieces), 3)
+        for src, dst in pieces:
+            x, y = self.app.canvas_point(dst.center)
+            self.assertAlmostEqual(x, src.centerx, delta=1)
+            self.assertAlmostEqual(y, src.centery, delta=1)
+
+    def test_map_button_toggles_full_map(self):
+        self.app.start(0)
+        before = self.app.overview
+        self.app._mobile_command('map')
+        self.assertNotEqual(self.app.overview, before)
+
     def test_gpu_window_holds_game_at_one_to_one(self):
         from mobile_ui import TouchPad
         for (width, height), dp in (((2400, 1080), 2.625), ((1600, 720), 2.0), ((1920, 1080), 2.625),

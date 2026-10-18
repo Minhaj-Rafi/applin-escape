@@ -10,7 +10,8 @@ version = 5.3.1
 # Pinning the target prevents newer p4a releases from selecting Python 3.11.
 requirements = hostpython3==3.10.11,python3==3.10.11,pygame==2.1.0,pyjnius,android
 icon.filename = assets/app_icon_512.png
-orientation = landscape
+# Game Boy style: game picture on top, touch controls below.
+orientation = portrait
 fullscreen = 1
 
 android.permissions = android.permission.INTERNET,android.permission.ACCESS_NETWORK_STATE,android.permission.ACCESS_WIFI_STATE,android.permission.CHANGE_WIFI_MULTICAST_STATE,(name=android.permission.BLUETOOTH;maxSdkVersion=30),(name=android.permission.BLUETOOTH_ADMIN;maxSdkVersion=30),(name=android.permission.BLUETOOTH_SCAN;usesPermissionFlags=neverForLocation),android.permission.BLUETOOTH_CONNECT,android.permission.BLUETOOTH_ADVERTISE

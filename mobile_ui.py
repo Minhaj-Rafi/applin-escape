@@ -22,6 +22,16 @@ GREEN = (177, 225, 153)
 GOLD = (247, 203, 118)
 RED = (239, 143, 133)
 W, H = 1280, 840  # logical canvas size, matching main.py
+# Portrait play shows the canvas in pieces: the header and maze on top, then the
+# HUD panel split in two side by side. (source rect on canvas, offset in the top area)
+PORTRAIT_PIECES = (
+    ((10, 0, 920, 830), (0, 0)),
+    ((940, 139, 310, 320), (140, 850)),
+    ((940, 459, 310, 316), (470, 850)),
+)
+PORTRAIT_SIZE = (920, 1170)
+PORTRAIT_STRIP_Y = 850   # top of the HUD strip
+PORTRAIT_GAP = 140       # empty space left and right of the HUD strip
 
 
 class TouchPad:
@@ -53,6 +63,8 @@ class TouchPad:
     @classmethod
     def build_layout(cls, width, height, dp, insets=(0, 0, 0, 0)):
         """Window-pixel rects for every control plus the area left for the game."""
+        if height > width:
+            return cls.portrait_layout(width, height, dp, insets)
         inset_l, inset_t, inset_r, inset_b = insets
         pad, use, esc, pause, margin = (max(1, round(size*dp)) for size in
                                         (cls.PAD_DP, cls.USE_DP, cls.ESCAPE_DP, cls.PAUSE_DP, cls.MARGIN_DP))
@@ -95,7 +107,68 @@ class TouchPad:
             "pause": pygame.Rect(width-inset_r-margin-pause, inset_t+margin, pause, pause),
         }
         return {"directions": directions, "actions": actions, "area": area,
-                "sidebars": sidebars, "dp": dp}
+                "sidebars": sidebars, "portrait": False, "dp": dp}
+
+    @classmethod
+    def portrait_layout(cls, width, height, dp, insets=(0, 0, 0, 0)):
+        """Game Boy style: the game picture on top, controls on black below.
+
+        The top area holds PORTRAIT_PIECES (maze plus the HUD split in two), which
+        is narrower than the full canvas and so shows the maze larger.
+        """
+        inset_l, inset_t, inset_r, inset_b = insets
+        design_w, design_h = PORTRAIT_SIZE
+        fit_w = width - inset_l - inset_r
+        avail = height - inset_t - inset_b
+        margin = max(1, round(cls.MARGIN_DP*dp))
+        small = max(1, round(cls.PAD_DP*dp))       # 48dp: Android's minimum target
+
+        def side_buttons_fit(top_w):
+            # MAP and PAUSE sit in the empty corners beside the HUD strip when they fit.
+            unit = top_w/design_w
+            return small <= PORTRAIT_GAP*unit - margin and small <= (design_h-PORTRAIT_STRIP_Y)*unit
+        top_h = round(fit_w*design_h/design_w)
+        in_gaps = side_buttons_fit(fit_w)
+        min_deck = small*3 + margin*4 + (0 if in_gaps else small + margin*2)
+        if avail - top_h < min_deck:
+            top_h = max(1, avail - min_deck)
+            in_gaps = side_buttons_fit(round(top_h*design_w/design_h))
+        top_w = round(top_h*design_w/design_h)
+        area = pygame.Rect(inset_l + (fit_w-top_w)//2, inset_t, top_w, top_h)
+        unit = top_w/design_w
+        deck = pygame.Rect(inset_l, area.bottom, fit_w, height-inset_b-area.bottom)
+        reserve = 0 if in_gaps else small + margin*2
+
+        # Arrows grow with the screen, between 48dp and 72dp, but must fit the deck.
+        pad = max(small, min(round(fit_w*.15), round(72*dp)))
+        pad = max(1, min(pad, (deck.h - reserve - margin*4)//3))
+        button = max(round(cls.USE_DP*dp), round(pad*1.25))
+        cy = deck.y + (deck.h - reserve)/2
+        cx = deck.x + margin*2 + pad*1.5
+        directions = {
+            "up": (pygame.Rect(round(cx-pad/2), round(cy-pad*1.5), pad, pad), (0, -1)),
+            "left": (pygame.Rect(round(cx-pad*1.5), round(cy-pad/2), pad, pad), (-1, 0)),
+            "right": (pygame.Rect(round(cx+pad/2), round(cy-pad/2), pad, pad), (1, 0)),
+            "down": (pygame.Rect(round(cx-pad/2), round(cy+pad/2), pad, pad), (0, 1)),
+        }
+        escape = pygame.Rect(0, 0, button, button)
+        escape.center = (round(deck.right - margin*2 - button/2), round(cy - pad*.55))
+        interact = pygame.Rect(0, 0, button, button)
+        interact.center = (round(escape.centerx - button*1.08), round(cy + pad*.55))
+        if in_gaps:
+            row = area.y + (PORTRAIT_STRIP_Y + design_h)/2*unit
+            map_rect = pygame.Rect(0, 0, small, small)
+            map_rect.center = (round(area.x + PORTRAIT_GAP/2*unit), round(row))
+            pause_rect = pygame.Rect(0, 0, small, small)
+            pause_rect.center = (round(area.right - PORTRAIT_GAP/2*unit), round(row))
+        else:
+            pill_w = max(round(96*dp), round(fit_w*.24))
+            pills_y = deck.bottom - margin*2 - small
+            map_rect = pygame.Rect(deck.centerx - margin//2 - pill_w, pills_y, pill_w, small)
+            pause_rect = pygame.Rect(deck.centerx + margin//2, pills_y, pill_w, small)
+        actions = {"interact": interact, "escape": escape, "map": map_rect, "pause": pause_rect}
+        return {"directions": directions, "actions": actions, "area": area,
+                "sidebars": False, "portrait": True, "dp": dp}
 
     @classmethod
     def logical_window(cls, width, height, dp, insets=(0, 0, 0, 0)):
@@ -103,9 +176,14 @@ class TouchPad:
 
         Returns that size plus the density and cutout insets in logical pixels.
         """
-        area = cls.build_layout(width, height, dp, insets)["area"]
-        scale = min(area.w/W, area.h/H)
-        size = (max(W, round(width/scale)), max(H, round(height/scale)))
+        layout = cls.build_layout(width, height, dp, insets)
+        area = layout["area"]
+        if layout["portrait"]:
+            scale = area.w/PORTRAIT_SIZE[0]
+            size = (round(width/scale), round(height/scale))
+        else:
+            scale = min(area.w/W, area.h/H)
+            size = (max(W, round(width/scale)), max(H, round(height/scale)))
         return size, dp/scale, tuple(round(i/scale) for i in insets)
 
     def layout(self, app):
@@ -119,7 +197,8 @@ class TouchPad:
 
     def canvas_area(self, app, width, height):
         """The window area the game picture is fitted into."""
-        if self.active(app):
+        # In portrait every screen sits on top, so menus and play never jump around.
+        if self.active(app) or (self.enabled and height > width):
             return self.layout(app)["area"]
         return pygame.Rect(0, 0, width, height)
 
@@ -168,13 +247,24 @@ class TouchPad:
                 return (name, None)
         return None
 
-    def _sprite(self, app, name, size, active):
-        key = name, size, active
+    def _sprite(self, app, name, width, height, active):
+        key = name, width, height, active
         if key not in self._sprites:
-            surface = pygame.Surface((size, size), pygame.SRCALPHA)
+            surface = pygame.Surface((width, height), pygame.SRCALPHA)
             rect = surface.get_rect()
+            size = min(width, height)
             labels = {"up": "▲", "left": "◀", "down": "▼", "right": "▶",
-                      "interact": "USE", "escape": "ESC", "pause": "Ⅱ"}
+                      "interact": "USE", "escape": "ESC", "map": "MAP",
+                      "pause": "PAUSE" if width > height*1.5 else "Ⅱ"}
+            if width > height*1.5:
+                # Start/Select style pill.
+                pygame.draw.rect(surface, (58, 66, 66, 220), rect, border_radius=height//2)
+                pygame.draw.rect(surface, (243, 237, 216, 120), rect, 2, border_radius=height//2)
+                font = app.font(max(11, height*2//5), bold=True)
+                label = font.render(labels[name], True, (243, 237, 216))
+                surface.blit(label, label.get_rect(center=rect.center))
+                self._sprites[key] = surface
+                return surface
             if name in ("up", "left", "down", "right"):
                 inner = rect.inflate(-4, -4)
                 radius = max(6, size//4)
@@ -198,9 +288,9 @@ class TouchPad:
         layout = self.layout(app)
         for name, (rect, direction) in layout["directions"].items():
             active = direction in self.held.values()
-            app.window.blit(self._sprite(app, name, rect.w, active), rect)
+            app.window.blit(self._sprite(app, name, rect.w, rect.h, active), rect)
         for name, rect in layout["actions"].items():
-            app.window.blit(self._sprite(app, name, rect.w, False), rect)
+            app.window.blit(self._sprite(app, name, rect.w, rect.h, False), rect)
 
 
 class MobileUI:
@@ -396,6 +486,8 @@ class MobileUI:
             self.game.interact()
         elif command == "pause":
             self.action("pause")
+        elif command == "map":
+            self.action("overview")
         self.consume_events()
 
     def _handle_host_command(self, message):
