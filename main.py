@@ -9,6 +9,10 @@ import sys
 import tempfile
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+# Android exposes the tilt sensor as a joystick by default, which moves the player.
+os.environ.setdefault('SDL_ACCELEROMETER_AS_JOYSTICK', '0')
+# Smooth (linear) filtering when the GPU scales the picture to the phone screen.
+os.environ.setdefault('SDL_RENDER_SCALE_QUALITY', 'linear')
 try:
     import pygame
 except ImportError:
@@ -47,9 +51,10 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
         pygame.init()
         from mobile_platform import is_android
         info = pygame.display.Info()
+        self.gpu_scaled = False
         if is_android():
             self.window_size = (max(640, info.current_w), max(360, info.current_h))
-            self.window = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            self.window = self.open_android_window(self.window_size)
         else:
             self.window_size = (min(1280, info.current_w), min(840, max(525, info.current_h - 70)))
             self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
@@ -113,11 +118,31 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
     def mouse(self):
         return self.canvas_point(pygame.mouse.get_pos())
 
+    def open_android_window(self, screen):
+        """Full-screen window that the GPU scales, so frames stay smooth on phones.
+
+        The window's logical size matches the screen's shape and leaves the canvas
+        at exactly 1:1 beside the touch controls, so no per-frame software scaling.
+        """
+        from mobile_platform import safe_insets, screen_density
+        from mobile_ui import TouchPad
+        size, self.touch_dp, self.touch_insets = TouchPad.logical_window(
+            *screen, screen_density(*screen), safe_insets())
+        for kwargs in ({'vsync': 1}, {}):
+            try:
+                window = pygame.display.set_mode(size, pygame.SCALED | pygame.FULLSCREEN, **kwargs)
+                self.gpu_scaled = True
+                return window
+            except (pygame.error, TypeError):
+                pass
+        self.touch_dp = self.touch_insets = None
+        return pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+
     def canvas_rect(self):
         """Top-left corner and scale of the logical canvas inside the window."""
         width, height = self.window.get_size()
         area = self.touch.canvas_area(self, width, height)
-        scale = min(area.w / W, area.h / H)
+        scale = 1.0 if self.gpu_scaled else min(area.w / W, area.h / H)
         return area.x + (area.w-W*scale)/2, area.y + (area.h-H*scale)/2, scale
 
     def canvas_point(self,pos):
@@ -164,7 +189,8 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
             self.celebrate = 0
             self.save_expedition()
             self.shrine_open = 0.0
-            self.overview = True
+            # Phones are too small for the whole map; follow Applin up close instead.
+            self.overview = not self.android
             self.prepare_board()
             self.audio.set_biome(self.game.tier)
             self.visual_player = list(map(float, self.game.player))
@@ -188,7 +214,7 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
     def camera(self):
         g=self.game
         full=self.overview or self.comfort
-        self.cell=min(880//g.config.width,610//g.config.height) if full else 36
+        self.cell=min(880//g.config.width,610//g.config.height) if full else (48 if self.android else 36)
         ww,wh=g.config.width*self.cell,g.config.height*self.cell
         target=getattr(self,'visual_player',g.player)
         if not hasattr(self,'camera_offset'):
@@ -423,8 +449,10 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
         keys = pygame.key.get_pressed()
         held = self.controls.held(keys,0,g.coop)
         touch_direction = self.touch.direction()
-        if touch_direction and touch_direction not in held:
-            held.append(touch_direction)
+        if touch_direction:
+            # A finger on the arrows always wins over any other held input.
+            held = [touch_direction]+[d for d in held if d != touch_direction]
+            self.held_direction = touch_direction
         if held and self.move_timer <= 0:
             direction = self.held_direction if self.held_direction in held else held[0]
             self.held_direction = direction
@@ -838,9 +866,12 @@ class App(MobileUI, ChronicleUI, HomeActivitiesUI, PolishUI, SanctuaryUI, Contro
             self.button('Back to menu', (48, 650, 260, 50), 'menu', True)
         self.draw_mobile_overlay()
         left, top, scale = self.canvas_rect()
-        dest = (max(1, int(W*scale)), max(1, int(H*scale)))
         self.window.fill((7, 14, 17))
-        self.window.blit(pygame.transform.smoothscale(self.canvas, dest), (int(left), int(top)))
+        if scale == 1:
+            self.window.blit(self.canvas, (round(left), round(top)))
+        else:
+            dest = (max(1, int(W*scale)), max(1, int(H*scale)))
+            self.window.blit(pygame.transform.smoothscale(self.canvas, dest), (int(left), int(top)))
         self.touch.draw(self)
         pygame.display.flip()
 

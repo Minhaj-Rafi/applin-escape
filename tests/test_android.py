@@ -127,6 +127,42 @@ class AndroidInterface(unittest.TestCase):
             self.assertGreaterEqual(min(area.w/1280, area.h/840), full*.85 - 1e-9, name)
             self.assertTrue(screen.contains(area), name)
 
+    def test_gpu_window_holds_game_at_one_to_one(self):
+        from mobile_ui import TouchPad
+        for (width, height), dp in (((2400, 1080), 2.625), ((1600, 720), 2.0), ((1920, 1080), 2.625),
+                                    ((2048, 1536), 2.0), ((2208, 1768), 2.625)):
+            size, logical_dp, insets = TouchPad.logical_window(width, height, dp)
+            self.assertAlmostEqual(size[0]/size[1], width/height, places=2)
+            area = TouchPad.build_layout(*size, logical_dp, insets)['area']
+            self.assertAlmostEqual(min(area.w/1280, area.h/840), 1, delta=.01)
+
+    def test_tilt_sensors_are_not_controllers(self):
+        from controls import is_motion_sensor
+        self.assertTrue(is_motion_sensor('Android Accelerometer'))
+        self.assertTrue(is_motion_sensor('Gyroscope'))
+        self.assertFalse(is_motion_sensor('Xbox Wireless Controller'))
+        self.assertFalse(is_motion_sensor(None))
+        self.assertEqual(os.environ.get('SDL_ACCELEROMETER_AS_JOYSTICK'), '0')
+
+    def test_touch_direction_beats_other_held_input(self):
+        self.app.start(0)
+        self.app.touch.enabled = True
+        self.app.touch.held['finger'] = (0, 1)
+        self.app.controls.held = lambda *_: [(1, 0)]
+        moves = []
+        from unittest import mock
+        with mock.patch.object(type(self.app.game), 'move', lambda game, d: moves.append(d) or True):
+            self.app.move_timer = 0
+            self.app.update(.01)
+        del self.app.controls.held
+        self.assertEqual(moves[0], (0, 1))
+
+    def test_phones_follow_applin_up_close(self):
+        self.app.android = True
+        self.app.start(2)
+        self.assertFalse(self.app.overview)
+        self.assertEqual(self.app.cell, 48)
+
     def test_menus_use_full_screen_and_play_uses_touch_area(self):
         self.app.touch.enabled = True
         self.app.screen = 'menu'

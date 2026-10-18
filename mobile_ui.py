@@ -97,11 +97,24 @@ class TouchPad:
         return {"directions": directions, "actions": actions, "area": area,
                 "sidebars": sidebars, "dp": dp}
 
+    @classmethod
+    def logical_window(cls, width, height, dp, insets=(0, 0, 0, 0)):
+        """Logical window size that holds the canvas at 1:1 during play.
+
+        Returns that size plus the density and cutout insets in logical pixels.
+        """
+        area = cls.build_layout(width, height, dp, insets)["area"]
+        scale = min(area.w/W, area.h/H)
+        size = (max(W, round(width/scale)), max(H, round(height/scale)))
+        return size, dp/scale, tuple(round(i/scale) for i in insets)
+
     def layout(self, app):
         size = app.window.get_size()
         if size != self._cache_key:
             self._cache_key = size
-            self._layout = self.build_layout(*size, screen_density(*size), safe_insets())
+            dp = getattr(app, "touch_dp", None) or screen_density(*size)
+            insets = getattr(app, "touch_insets", None) or safe_insets()
+            self._layout = self.build_layout(*size, dp, insets)
         return self._layout
 
     def canvas_area(self, app, width, height):

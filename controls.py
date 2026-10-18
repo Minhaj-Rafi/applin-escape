@@ -13,6 +13,12 @@ DEFAULT_KEYS=((pygame.K_w,pygame.K_d,pygame.K_s,pygame.K_a,pygame.K_SPACE,pygame
 RESERVED={pygame.K_ESCAPE,pygame.K_RETURN,pygame.K_TAB,pygame.K_F1,pygame.K_F11,pygame.K_m,pygame.K_p,pygame.K_t,pygame.K_v}
 
 
+def is_motion_sensor(name):
+    """Phone tilt sensors that SDL can list as joysticks; never game controllers."""
+    name=(name or '').lower()
+    return any(word in name for word in ('accelerometer','gyroscope','gyro sensor'))
+
+
 def stick_direction(x,y,deadzone=.3):
     if max(abs(x),abs(y))<deadzone: return None
     return ((1 if x>0 else -1),0) if abs(x)>abs(y) else (0,(1 if y>0 else -1))
@@ -182,6 +188,7 @@ class Controls:
                 if not joystick.get_init(): joystick.init()
                 instance=joystick.get_instance_id()
                 if instance in self.pads or len(used)>=2: continue
+                if is_motion_sensor(joystick.get_name()): continue
                 slot=next(i for i in (0,1) if i not in used)
                 mapped=bool(sdl_controller and sdl_controller.is_controller(index))
                 pad=sdl_controller.Controller(index) if mapped else RawPad(joystick)
